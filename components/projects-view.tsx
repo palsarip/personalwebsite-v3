@@ -2,18 +2,16 @@
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { Draggable } from "gsap/Draggable";
-import ProjectItem from "./project-item";
+import ProjectItem, { GRID_UNIT, GAP } from "./project-item";
 import { projects, type Project } from "@/data/projects";
 
 gsap.registerPlugin(Draggable);
 
-const COLS = 2;
-const CARD_WIDTH = 400;
-const CARD_HEIGHT = 300;
-const GAP = 40;
+const BENTO_COLS = 4;
+const BENTO_ROWS = 3;
 
-const TILE_WIDTH = COLS * (CARD_WIDTH + GAP);
-const TILE_HEIGHT = Math.ceil(projects.length / COLS) * (CARD_HEIGHT + GAP);
+const TILE_WIDTH = BENTO_COLS * GRID_UNIT + (BENTO_COLS - 1) * GAP;
+const TILE_HEIGHT = BENTO_ROWS * GRID_UNIT + (BENTO_ROWS - 1) * GAP;
 
 interface ProjectsViewProps {
   isInteractive: boolean;
@@ -27,9 +25,17 @@ export default function ProjectsView({
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const dragInstance = useRef<Draggable[] | null>(null);
+  const isInteractiveRef = useRef(isInteractive);
+
+  const position = useRef({ x: 0, y: 0 });
+  const target = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
-    if (dragInstance.current) {
+    isInteractiveRef.current = isInteractive;
+  }, [isInteractive]);
+
+  useEffect(() => {
+    if (dragInstance.current?.[0]) {
       if (isInteractive) {
         dragInstance.current[0].enable();
       } else {
@@ -44,10 +50,12 @@ export default function ProjectsView({
     const element = canvasRef.current;
     const container = containerRef.current;
 
-    // Posisikan kanvas agar tile tengah berada di viewport
     const startX = -TILE_WIDTH;
     const startY = -TILE_HEIGHT;
     gsap.set(element, { x: startX, y: startY });
+
+    position.current = { x: startX, y: startY };
+    target.current = { x: startX, y: startY };
 
     dragInstance.current = Draggable.create(element, {
       type: "x,y",
@@ -55,48 +63,87 @@ export default function ProjectsView({
       inertia: true,
       cursor: "grab",
       activeCursor: "grabbing",
+      onDrag: function () {
+        target.current.x = this.x;
+        target.current.y = this.y;
+      },
+      onThrowUpdate: function () {
+        target.current.x = this.x;
+        target.current.y = this.y;
+      },
     });
+
+    const onWheel = (event: WheelEvent) => {
+      if (!isInteractiveRef.current) return;
+      event.preventDefault();
+
+      const scrollSpeed = 1.5;
+      target.current.x -= event.deltaX * scrollSpeed;
+      target.current.y -= event.deltaY * scrollSpeed;
+    };
+
+    container.addEventListener("wheel", onWheel, { passive: false });
 
     const checkBounds = () => {
       const dragger = dragInstance.current?.[0];
       if (!dragger) return;
-
-      // --- LOGIKA DIPERBAIKI ---
-      // Kita akan wrap jika kanvas bergeser lebih dari setengah lebar/tinggi tile dari titik tengah
       const thresholdX = TILE_WIDTH / 2;
       const thresholdY = TILE_HEIGHT / 2;
 
-      // Untuk Debugging: Buka console browser Anda (F12)
-      // console.log(`Current X: ${Math.round(dragger.x)}`);
-
-      // Cek Sumbu X
       if (dragger.x > startX + thresholdX) {
-        console.log("--- WRAP KIRI KE KANAN ---");
-        gsap.set(element, { x: dragger.x - TILE_WIDTH });
-        dragger.update(true); // 'true' berarti posisi disinkronkan tanpa memicu event
+        const newX = dragger.x - TILE_WIDTH;
+        gsap.set(element, { x: newX });
+        dragger.update(true);
+        position.current.x = newX;
+        target.current.x -= TILE_WIDTH; // <-- PERBAIKAN DI SINI
       } else if (dragger.x < startX - thresholdX) {
-        console.log("--- WRAP KANAN KE KIRI ---");
-        gsap.set(element, { x: dragger.x + TILE_WIDTH });
+        const newX = dragger.x + TILE_WIDTH;
+        gsap.set(element, { x: newX });
         dragger.update(true);
+        position.current.x = newX;
+        target.current.x += TILE_WIDTH; // <-- PERBAIKAN DI SINI
       }
-
-      // Cek Sumbu Y
       if (dragger.y > startY + thresholdY) {
-        console.log("--- WRAP ATAS KE BAWAH ---");
-        gsap.set(element, { y: dragger.y - TILE_HEIGHT });
+        const newY = dragger.y - TILE_HEIGHT;
+        gsap.set(element, { y: newY });
         dragger.update(true);
+        position.current.y = newY;
+        target.current.y -= TILE_HEIGHT; // <-- PERBAIKAN DI SINI
       } else if (dragger.y < startY - thresholdY) {
-        console.log("--- WRAP BAWAH KE ATAS ---");
-        gsap.set(element, { y: dragger.y + TILE_HEIGHT });
+        const newY = dragger.y + TILE_HEIGHT;
+        gsap.set(element, { y: newY });
         dragger.update(true);
+        position.current.y = newY;
+        target.current.y += TILE_HEIGHT; // <-- PERBAIKAN DI SINI
       }
     };
 
-    gsap.ticker.add(checkBounds);
+    const update = () => {
+      const dragger = dragInstance.current?.[0];
+      if (!dragger) return;
+
+      if (dragger.isDragging || dragger.isThrowing) {
+        position.current.x = dragger.x;
+        position.current.y = dragger.y;
+        return;
+      }
+
+      const damping = 0.1;
+      position.current.x += (target.current.x - position.current.x) * damping;
+      position.current.y += (target.current.y - position.current.y) * damping;
+
+      gsap.set(element, { x: position.current.x, y: position.current.y });
+      dragger.update(true);
+
+      checkBounds();
+    };
+
+    gsap.ticker.add(update);
 
     return () => {
-      gsap.ticker.remove(checkBounds);
+      gsap.ticker.remove(update);
       dragInstance.current?.[0].kill();
+      container.removeEventListener("wheel", onWheel);
     };
   }, []);
 
@@ -112,12 +159,12 @@ export default function ProjectsView({
     >
       <div ref={canvasRef} className="relative w-full h-full">
         {tiles.map(({ row, col }) =>
-          projects.map((project, index) => {
-            const projectCol = index % COLS;
-            const projectRow = Math.floor(index / COLS);
-
-            const x = col * TILE_WIDTH + projectCol * (CARD_WIDTH + GAP);
-            const y = row * TILE_HEIGHT + projectRow * (CARD_HEIGHT + GAP);
+          projects.map((project) => {
+            const projectCol = project.colStart - 1;
+            const projectRow = project.rowStart - 1;
+            const x = col * (TILE_WIDTH + GAP) + projectCol * (GRID_UNIT + GAP);
+            const y =
+              row * (TILE_HEIGHT + GAP) + projectRow * (GRID_UNIT + GAP);
 
             return (
               <ProjectItem
