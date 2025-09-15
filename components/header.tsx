@@ -1,29 +1,29 @@
 "use client";
 
-import { useLayoutEffect } from "react";
-import { Github, Instagram, Linkedin, AtSign } from "lucide-react";
-import gsap from "gsap";
+import { useLayoutEffect } from 'react';
+import { Github, Instagram, Linkedin, AtSign } from 'lucide-react';
+import gsap from 'gsap';
 
 const socials = [
   {
-    href: "https://github.com/your-username",
+    href: 'https://github.com/your-username',
     icon: Github,
-    label: "GitHub",
+    label: 'GitHub',
   },
   {
-    href: "https://instagram.com/your-username",
+    href: 'https://instagram.com/your-username',
     icon: Instagram,
-    label: "Instagram",
+    label: 'Instagram',
   },
   {
-    href: "https://threads.net/your-username",
+    href: 'https://threads.net/your-username',
     icon: AtSign,
-    label: "Threads",
+    label: 'Threads',
   },
   {
-    href: "https://linkedin.com/in/your-username",
+    href: 'https://linkedin.com/in/your-username',
     icon: Linkedin,
-    label: "LinkedIn",
+    label: 'LinkedIn',
   },
 ];
 
@@ -38,30 +38,21 @@ export default function Header() {
       ease: "power3.out",
     });
 
-    tl.from(
-      "#header-socials a",
-      {
-        opacity: 0,
-        y: -20,
-        duration: 0.5,
-        ease: "power3.out",
-        stagger: 0.1,
-      },
-      "-=0.5"
-    );
+    tl.from("#header-socials a", {
+      opacity: 0,
+      y: -20,
+      duration: 0.5,
+      ease: "power3.out",
+      stagger: 0.1,
+    }, "-=0.5");
   }, []);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 p-4 sm:p-6">
       <div className="flex items-center justify-between max-w-7xl mx-auto">
-        <a
-          href="/"
-          id="header-logo"
-          className="text-xl font-serif text-slate-800"
-        >
+        <a href="/" id="header-logo" className="text-xl font-serif text-slate-800">
           Naufal Syarif
         </a>
-
         <nav id="header-socials" className="flex items-center space-x-3">
           {socials.map((social) => (
             <a

@@ -1,3 +1,4 @@
+// components/about-view.tsx
 export default function AboutView() {
   return (
     <div>
