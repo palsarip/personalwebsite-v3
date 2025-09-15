@@ -1,25 +1,36 @@
-import type { Project } from '@/data/projects';
-import { ArrowUpRight } from 'lucide-react';
-import Image from 'next/image';
+import { type Project } from "@/data/projects";
+import { ArrowUpRight } from "lucide-react";
 
 interface ProjectDetailContentProps {
   project: Project;
 }
 
-export default function ProjectDetailContent({ project }: ProjectDetailContentProps) {
+export default function ProjectDetailContent({
+  project,
+}: ProjectDetailContentProps) {
   return (
-    <div>
-      <div className="relative w-full aspect-video rounded-lg overflow-hidden mb-6">
-        <Image src={project.image} alt={project.title} fill className="object-cover" />
-      </div>
-      <a href={project.link} target="_blank" rel="noopener noreferrer" className="group flex items-center justify-between">
-        <h2 className="text-4xl font-serif font-bold text-slate-800">{project.title}</h2>
-        <ArrowUpRight className="w-8 h-8 text-slate-500 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+    <div className="p-4">
+      <h3 className="text-4xl font-serif font-normal text-slate-900">
+        {project.title}
+      </h3>
+      <a
+        href="#" // Ganti dengan link proyek asli jika ada
+        className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors mt-2"
+      >
+        Lihat Proyek <ArrowUpRight className="w-4 h-4" />
       </a>
-      <p className="text-lg text-slate-600 mt-2">{project.description}</p>
+      <p className="text-lg text-slate-600 mt-6 leading-relaxed">
+        {project.description}
+      </p>
+
+      {/* Tampilkan tag di sini */}
       <div className="flex items-center gap-2 mt-6 flex-wrap">
-        {project.tags.map((tag) => (
-          <span key={tag} className="text-sm bg-slate-200 text-slate-700 px-3 py-1 rounded-full">
+        {/* Gunakan optional chaining (?.) untuk keamanan jika tags tidak ada */}
+        {project.tags?.map((tag) => (
+          <span
+            key={tag}
+            className="text-sm bg-slate-200 text-slate-700 px-3 py-1 rounded-full"
+          >
             {tag}
           </span>
         ))}
