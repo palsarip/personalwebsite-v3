@@ -60,7 +60,9 @@ export default function ProjectsView({
     dragInstance.current = Draggable.create(element, {
       type: "x,y",
       trigger: container,
-      inertia: true,
+      inertia: {
+        resistance: 750,
+      },
       cursor: "grab",
       activeCursor: "grabbing",
       onDrag: function () {
@@ -77,9 +79,12 @@ export default function ProjectsView({
       if (!isInteractiveRef.current) return;
       event.preventDefault();
 
-      const scrollSpeed = 1.5;
-      target.current.x -= event.deltaX * scrollSpeed;
-      target.current.y -= event.deltaY * scrollSpeed;
+      // --- PERBAIKAN DI SINI: Kecepatan berbeda untuk setiap sumbu ---
+      const horizontalScrollSpeed = 1.5;
+      const verticalScrollSpeed = 0.8; // Lebih kecil untuk menyeimbangkan
+
+      target.current.x -= event.deltaX * horizontalScrollSpeed;
+      target.current.y -= event.deltaY * verticalScrollSpeed;
     };
 
     container.addEventListener("wheel", onWheel, { passive: false });
@@ -95,26 +100,26 @@ export default function ProjectsView({
         gsap.set(element, { x: newX });
         dragger.update(true);
         position.current.x = newX;
-        target.current.x -= TILE_WIDTH; // <-- PERBAIKAN DI SINI
+        target.current.x -= TILE_WIDTH;
       } else if (dragger.x < startX - thresholdX) {
         const newX = dragger.x + TILE_WIDTH;
         gsap.set(element, { x: newX });
         dragger.update(true);
         position.current.x = newX;
-        target.current.x += TILE_WIDTH; // <-- PERBAIKAN DI SINI
+        target.current.x += TILE_WIDTH;
       }
       if (dragger.y > startY + thresholdY) {
         const newY = dragger.y - TILE_HEIGHT;
         gsap.set(element, { y: newY });
         dragger.update(true);
         position.current.y = newY;
-        target.current.y -= TILE_HEIGHT; // <-- PERBAIKAN DI SINI
+        target.current.y -= TILE_HEIGHT;
       } else if (dragger.y < startY - thresholdY) {
         const newY = dragger.y + TILE_HEIGHT;
         gsap.set(element, { y: newY });
         dragger.update(true);
         position.current.y = newY;
-        target.current.y += TILE_HEIGHT; // <-- PERBAIKAN DI SINI
+        target.current.y += TILE_HEIGHT;
       }
     };
 
@@ -128,7 +133,7 @@ export default function ProjectsView({
         return;
       }
 
-      const damping = 0.1;
+      const damping = 0.025;
       position.current.x += (target.current.x - position.current.x) * damping;
       position.current.y += (target.current.y - position.current.y) * damping;
 
