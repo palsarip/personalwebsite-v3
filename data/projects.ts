@@ -1,53 +1,43 @@
-export type Project = {
+export interface Project {
   id: string;
   title: string;
+  category: string;
+  imageUrl: string;
   description: string;
-  image: string;
-  tags: string[];
-  link: string;
-  role: string;
-  timeline: string;
-};
+}
 
 export const projects: Project[] = [
   {
-    id: 'proj-1',
-    title: 'AI-Powered Task Manager',
-    description: 'An intelligent to-do list that categorizes and prioritizes tasks using machine learning.',
-    image: 'https://picsum.photos/seed/proj1/800/600',
-    tags: ['Next.js', 'Python', 'AI', 'Tailwind CSS'],
-    link: '#',
-    role: 'Full-Stack Developer',
-    timeline: '3 Weeks (2025)',
+    id: "proj-1",
+    title: "Project Alpha",
+    category: "Web Development",
+    imageUrl: "https://picsum.photos/seed/proj1/800/600",
+    description:
+      "A detailed description of Project Alpha, focusing on the technologies used and the problems solved. It was a challenging yet rewarding experience.",
   },
   {
-    id: 'proj-2',
-    title: 'Interactive Data Visualization',
-    description: 'A web app for visualizing complex financial datasets with D3.js and React.',
-    image: 'https://picsum.photos/seed/proj2/800/600',
-    tags: ['React', 'D3.js', 'TypeScript'],
-    link: '#',
-    role: 'Frontend Developer',
-    timeline: '1 Month (2025)',
+    id: "proj-2",
+    title: "Project Beta",
+    category: "UI/UX Design",
+    imageUrl: "https://picsum.photos/seed/proj2/800/600",
+    description:
+      "A deep dive into the design process for Project Beta. From user research to high-fidelity prototypes, every decision was data-driven.",
   },
   {
-    id: 'proj-3',
-    title: 'E-commerce Platform',
-    description: 'A full-stack online store with a custom CMS and payment integration.',
-    image: 'https://picsum.photos/seed/proj3/800/600',
-    tags: ['Bun', 'PostgreSQL', 'Stripe', 'GSAP'],
-    link: '#',
-    role: 'Lead Developer',
-    timeline: '2 Months (2024)',
+    id: "proj-3",
+    title: "Project Gamma",
+    category: "Mobile App",
+    imageUrl: "https://picsum.photos/seed/proj3/800/600",
+    description:
+      "Developing a cross-platform mobile application using modern frameworks. The focus was on performance and a seamless user experience.",
   },
   {
-    id: 'proj-4',
-    title: 'Creative Agency Portfolio',
-    description: 'A visually-driven portfolio website for a design agency with complex animations.',
-    image: 'https://picsum.photos/seed/proj4/800/600',
-    tags: ['GSAP', 'Next.js', 'Figma'],
-    link: '#',
-    role: 'Creative Developer',
-    timeline: '6 Weeks (2024)',
-  }
+    id: "proj-4",
+    title: "Project Delta",
+    category: "Branding",
+    imageUrl: "https://picsum.photos/seed/proj4/800/600",
+    description:
+      "Crafting a unique brand identity for a startup. This involved creating a logo, style guide, and marketing materials from scratch.",
+  },
+  // Tambahkan lebih banyak proyek di sini jika perlu
 ];

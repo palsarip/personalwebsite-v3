@@ -1,11 +1,9 @@
 "use client";
-import { useEffect, useRef, useState } from 'react';
-import gsap from 'gsap';
-import { Draggable } from 'gsap/Draggable';
-import ProjectItem from './project-item';
-import Window from './window';
-import ProjectDetailContent from './project-detail-content';
-import { projects, type Project } from '@/data/projects';
+import { useEffect, useRef } from "react";
+import gsap from "gsap";
+import { Draggable } from "gsap/Draggable";
+import ProjectItem from "./project-item";
+import { projects, type Project } from "@/data/projects";
 
 gsap.registerPlugin(Draggable);
 
@@ -13,37 +11,30 @@ const COLS = 2;
 const CARD_WIDTH = 400;
 const CARD_HEIGHT = 300;
 const GAP = 40;
-const GRID_WIDTH = COLS * (CARD_WIDTH + GAP);
-const GRID_HEIGHT = Math.ceil(projects.length / COLS) * (CARD_HEIGHT + GAP);
-const xSnap = CARD_WIDTH + GAP;
-const ySnap = CARD_HEIGHT + GAP;
+
+const TILE_WIDTH = COLS * (CARD_WIDTH + GAP);
+const TILE_HEIGHT = Math.ceil(projects.length / COLS) * (CARD_HEIGHT + GAP);
 
 interface ProjectsViewProps {
   isInteractive: boolean;
   onProjectSelect: (project: Project) => void;
 }
 
-export default function ProjectsView({ isInteractive, onProjectSelect }: ProjectsViewProps) {
+export default function ProjectsView({
+  isInteractive,
+  onProjectSelect,
+}: ProjectsViewProps) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const dragInstance = useRef<Draggable | null>(null);
-  const isDragging = useRef(false);
-  
-  // Fixed velocity tracker type
-  const velocityTracker = useRef({
-    velocityX: 0,
-    velocityY: 0,
-    lastX: 0,
-    lastY: 0,
-    lastTime: 0,
-    positions: [] as Array<{x: number, y: number, time: number}>
-  });
+  const dragInstance = useRef<Draggable[] | null>(null);
 
   useEffect(() => {
-    if (isInteractive) {
-      dragInstance.current?.enable();
-    } else {
-      dragInstance.current?.disable();
+    if (dragInstance.current) {
+      if (isInteractive) {
+        dragInstance.current[0].enable();
+      } else {
+        dragInstance.current[0].disable();
+      }
     }
   }, [isInteractive]);
 
@@ -52,162 +43,95 @@ export default function ProjectsView({ isInteractive, onProjectSelect }: Project
 
     const element = canvasRef.current;
     const container = containerRef.current;
-    
-    console.log('Setting up draggable on:', element);
-    
+
+    // Posisikan kanvas agar tile tengah berada di viewport
+    const startX = -TILE_WIDTH;
+    const startY = -TILE_HEIGHT;
+    gsap.set(element, { x: startX, y: startY });
+
     dragInstance.current = Draggable.create(element, {
       type: "x,y",
-      inertia: false,
       trigger: container,
+      inertia: true,
       cursor: "grab",
-      
-      onPress: function(e) {
-        console.log('onPress triggered at:', e.clientX, e.clientY);
-        gsap.killTweensOf(element);
-        isDragging.current = false;
-      },
-      
-      onDragStart: function(e) {
-        console.log('onDragStart triggered');
-        isDragging.current = true;
-        gsap.killTweensOf(element);
-        
-        // Reset velocity tracker with proper property names
-        const tracker = velocityTracker.current;
-        tracker.positions = [];
-        tracker.velocityX = 0;
-        tracker.velocityY = 0;
-        tracker.lastX = this.x;
-        tracker.lastY = this.y;
-        tracker.lastTime = performance.now();
-        
-        console.log('Drag started from position:', this.x, this.y);
-      },
-      
-      onDrag: function() {
-        if (!isDragging.current) return;
-        
-        const now = performance.now();
-        const tracker = velocityTracker.current;
-        
-        tracker.positions.push({
-          x: this.x,
-          y: this.y,
-          time: now
-        });
-        
-        // Keep only recent positions (last 100ms worth)
-        tracker.positions = tracker.positions.filter(pos => now - pos.time < 100);
-        
-        if (tracker.positions.length >= 2) {
-          const recent = tracker.positions[tracker.positions.length - 1];
-          const older = tracker.positions[0];
-          const timeDiff = recent.time - older.time;
-          
-          if (timeDiff > 0) {
-            tracker.velocityX = (recent.x - older.x) / timeDiff * 1000;
-            tracker.velocityY = (recent.y - older.y) / timeDiff * 1000;
-          }
-        }
-      },
-      
-      onDragEnd: function() {
-        console.log('Drag ended');
-        isDragging.current = false;
-        
-        const tracker = velocityTracker.current;
-        const currentX = this.x;
-        const currentY = this.y;
-        
-        // Calculate momentum
-        const minVelocity = 50;
-        const maxDistance = 300;
-        const friction = 0.15;
-        
-        let momentumX = 0;
-        let momentumY = 0;
-        
-        if (Math.abs(tracker.velocityX) > minVelocity) {
-          momentumX = Math.min(Math.abs(tracker.velocityX) * friction, maxDistance) * Math.sign(tracker.velocityX);
-        }
-        
-        if (Math.abs(tracker.velocityY) > minVelocity) {
-          momentumY = Math.min(Math.abs(tracker.velocityY) * friction, maxDistance) * Math.sign(tracker.velocityY);
-        }
-        
-        // Apply momentum
-        if (Math.abs(momentumX) > 10 || Math.abs(momentumY) > 10) {
-          console.log('Applying momentum:', momentumX, momentumY);
-          gsap.to(element, {
-            x: currentX + momentumX,
-            y: currentY + momentumY,
-            duration: 1.5,
-            ease: "power2.out",
-            overwrite: "auto",
-            onStart: function() {
-              console.log('Momentum started');
-            },
-            onComplete: function() {
-              console.log('Momentum completed');
-              // Simple sync without read-only property assignment
-              setTimeout(() => {
-                if (dragInstance.current) {
-                  dragInstance.current.update();
-                  console.log('Draggable updated');
-                }
-              }, 50);
-            }
-          });
-        }
-      }
-    })[0];
+      activeCursor: "grabbing",
+    });
 
-    // Set initial position
-    gsap.set(element, { x: -GRID_WIDTH / 4, y: -GRID_HEIGHT / 4 });
+    const checkBounds = () => {
+      const dragger = dragInstance.current?.[0];
+      if (!dragger) return;
+
+      // --- LOGIKA DIPERBAIKI ---
+      // Kita akan wrap jika kanvas bergeser lebih dari setengah lebar/tinggi tile dari titik tengah
+      const thresholdX = TILE_WIDTH / 2;
+      const thresholdY = TILE_HEIGHT / 2;
+
+      // Untuk Debugging: Buka console browser Anda (F12)
+      // console.log(`Current X: ${Math.round(dragger.x)}`);
+
+      // Cek Sumbu X
+      if (dragger.x > startX + thresholdX) {
+        console.log("--- WRAP KIRI KE KANAN ---");
+        gsap.set(element, { x: dragger.x - TILE_WIDTH });
+        dragger.update(true); // 'true' berarti posisi disinkronkan tanpa memicu event
+      } else if (dragger.x < startX - thresholdX) {
+        console.log("--- WRAP KANAN KE KIRI ---");
+        gsap.set(element, { x: dragger.x + TILE_WIDTH });
+        dragger.update(true);
+      }
+
+      // Cek Sumbu Y
+      if (dragger.y > startY + thresholdY) {
+        console.log("--- WRAP ATAS KE BAWAH ---");
+        gsap.set(element, { y: dragger.y - TILE_HEIGHT });
+        dragger.update(true);
+      } else if (dragger.y < startY - thresholdY) {
+        console.log("--- WRAP BAWAH KE ATAS ---");
+        gsap.set(element, { y: dragger.y + TILE_HEIGHT });
+        dragger.update(true);
+      }
+    };
+
+    gsap.ticker.add(checkBounds);
 
     return () => {
-      dragInstance.current?.kill();
-      gsap.killTweensOf(element);
+      gsap.ticker.remove(checkBounds);
+      dragInstance.current?.[0].kill();
     };
   }, []);
+
+  const tiles = Array.from({ length: 9 }).map((_, i) => ({
+    row: Math.floor(i / 3),
+    col: i % 3,
+  }));
 
   return (
     <div
       ref={containerRef}
-      className={`w-screen h-screen overflow-hidden bg-[#F8F9FA] ${
-        isInteractive ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
-      }`}
-      data-draggable-area="true"
+      className="w-screen h-screen overflow-hidden bg-[#F8F9FA]"
     >
-      <div
-        ref={canvasRef}
-        className={`relative w-full h-full ${!isInteractive ? 'pointer-events-none' : ''}`}
-        style={{
-          zIndex: 1
-        }}
-      >
-        {[-3, -2, -1, 0, 1, 2, 3].map(rowOffset =>
-          [-3, -2, -1, 0, 1, 2, 3].map(colOffset =>
-            projects.map((project, index) => {
-              const col = index % COLS;
-              const row = Math.floor(index / COLS);
-              const x = col * xSnap + (colOffset * GRID_WIDTH);
-              const y = row * ySnap + (rowOffset * GRID_HEIGHT);
-              return (
-                <ProjectItem
-                  key={`${project.id}-${rowOffset}-${colOffset}`}
-                  project={project}
-                  onSelect={() => onProjectSelect(project)}
-                  style={{
-                    position: 'absolute',
-                    transform: `translate(${x}px, ${y}px)`,
-                    pointerEvents: !isInteractive ? 'none' : 'auto',
-                    zIndex: 0
-                  }}
-                />
-              );
-            })
-          )
+      <div ref={canvasRef} className="relative w-full h-full">
+        {tiles.map(({ row, col }) =>
+          projects.map((project, index) => {
+            const projectCol = index % COLS;
+            const projectRow = Math.floor(index / COLS);
+
+            const x = col * TILE_WIDTH + projectCol * (CARD_WIDTH + GAP);
+            const y = row * TILE_HEIGHT + projectRow * (CARD_HEIGHT + GAP);
+
+            return (
+              <ProjectItem
+                key={`${project.id}-${row}-${col}`}
+                project={project}
+                onSelect={onProjectSelect}
+                style={{
+                  position: "absolute",
+                  transform: `translate(${x}px, ${y}px)`,
+                  pointerEvents: !isInteractive ? "none" : "auto",
+                }}
+              />
+            );
+          })
         )}
       </div>
     </div>
