@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { Draggable } from "gsap/Draggable";
 import ProjectItem, { GRID_UNIT, GAP } from "./project-item";
@@ -29,6 +29,32 @@ export default function ProjectsView({
 
   const position = useRef({ x: 0, y: 0 });
   const target = useRef({ x: 0, y: 0 });
+  const [gridDims, setGridDims] = useState(() => ({ cols: 3, rows: 3 }));
+  const [tiles, setTiles] = useState<{ row: number; col: number }[]>(() =>
+    Array.from({ length: 9 }).map((_, i) => ({
+      row: Math.floor(i / 3),
+      col: i % 3,
+    }))
+  );
+
+  const recomputeGrid = () => {
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const spanX = TILE_WIDTH + GAP;
+    const spanY = TILE_HEIGHT + GAP;
+
+    const colsNeeded = Math.ceil(viewportWidth / spanX) + 2; // +2 buffer (left/right)
+    const rowsNeeded = Math.ceil(viewportHeight / spanY) + 2; // +2 buffer (top/bottom)
+    const cols = Math.max(3, colsNeeded);
+    const rows = Math.max(3, rowsNeeded);
+    setGridDims({ cols, rows });
+    setTiles(
+      Array.from({ length: cols * rows }).map((_, i) => ({
+        row: Math.floor(i / cols),
+        col: i % cols,
+      }))
+    );
+  };
 
   useEffect(() => {
     isInteractiveRef.current = isInteractive;
@@ -50,12 +76,20 @@ export default function ProjectsView({
     const element = canvasRef.current;
     const container = containerRef.current;
 
+    // Initial center-ish offset so wrapping is symmetric
     const startX = -TILE_WIDTH;
     const startY = -TILE_HEIGHT;
     gsap.set(element, { x: startX, y: startY });
 
     position.current = { x: startX, y: startY };
     target.current = { x: startX, y: startY };
+
+    // Compute initial grid and listen for resize
+    recomputeGrid();
+    const onResize = () => {
+      recomputeGrid();
+    };
+    window.addEventListener("resize", onResize);
 
     dragInstance.current = Draggable.create(element, {
       type: "x,y",
@@ -149,13 +183,9 @@ export default function ProjectsView({
       gsap.ticker.remove(update);
       dragInstance.current?.[0].kill();
       container.removeEventListener("wheel", onWheel);
+      window.removeEventListener("resize", onResize);
     };
   }, []);
-
-  const tiles = Array.from({ length: 9 }).map((_, i) => ({
-    row: Math.floor(i / 3),
-    col: i % 3,
-  }));
 
   return (
     <div
