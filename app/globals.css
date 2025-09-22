@@ -22,3 +22,9 @@
 body {
   background-color: #f8f9fa;
 }
+
+/* Menambahkan kelas ini untuk membantu animasi Flip */
+.project-detail-open .header-and-dock {
+  opacity: 0;
+  pointer-events: none;
+}

@@ -7,9 +7,9 @@ import { projects, type Project } from "@/data/projects";
 
 gsap.registerPlugin(Draggable);
 
+// Konfigurasi Bento Grid
 const BENTO_COLS = 4;
 const BENTO_ROWS = 3;
-
 const TILE_WIDTH = BENTO_COLS * GRID_UNIT + (BENTO_COLS - 1) * GAP;
 const TILE_HEIGHT = BENTO_ROWS * GRID_UNIT + (BENTO_ROWS - 1) * GAP;
 
@@ -24,168 +24,69 @@ export default function ProjectsView({
 }: ProjectsViewProps) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const dragInstance = useRef<Draggable[] | null>(null);
-  const isInteractiveRef = useRef(isInteractive);
+  const dragInstance = useRef<Draggable | null>(null);
 
-  const position = useRef({ x: 0, y: 0 });
-  const target = useRef({ x: 0, y: 0 });
-  const [gridDims, setGridDims] = useState(() => ({ cols: 3, rows: 3 }));
-  const [tiles, setTiles] = useState<{ row: number; col: number }[]>(() =>
-    Array.from({ length: 9 }).map((_, i) => ({
-      row: Math.floor(i / 3),
-      col: i % 3,
-    }))
-  );
-
-  const recomputeGrid = () => {
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    const spanX = TILE_WIDTH + GAP;
-    const spanY = TILE_HEIGHT + GAP;
-
-    const colsNeeded = Math.ceil(viewportWidth / spanX) + 2; // +2 buffer (left/right)
-    const rowsNeeded = Math.ceil(viewportHeight / spanY) + 2; // +2 buffer (top/bottom)
-    const cols = Math.max(3, colsNeeded);
-    const rows = Math.max(3, rowsNeeded);
-    setGridDims({ cols, rows });
-    setTiles(
-      Array.from({ length: cols * rows }).map((_, i) => ({
-        row: Math.floor(i / cols),
-        col: i % cols,
-      }))
-    );
-  };
+  // State untuk me-render ulang grid saat ukuran window berubah
+  const [tiles, setTiles] = useState<{ row: number; col: number }[]>([]);
 
   useEffect(() => {
-    isInteractiveRef.current = isInteractive;
-  }, [isInteractive]);
+    // Fungsi untuk menghitung ulang jumlah tile yang dibutuhkan
+    const recomputeGrid = () => {
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const spanX = TILE_WIDTH + GAP;
+      const spanY = TILE_HEIGHT + GAP;
+      const colsNeeded = Math.ceil(viewportWidth / spanX) + 2;
+      const rowsNeeded = Math.ceil(viewportHeight / spanY) + 2;
+      const cols = Math.max(3, colsNeeded);
+      const rows = Math.max(3, rowsNeeded);
+      setTiles(
+        Array.from({ length: cols * rows }).map((_, i) => ({
+          row: Math.floor(i / cols),
+          col: i % cols,
+        }))
+      );
+    };
 
-  useEffect(() => {
-    if (dragInstance.current?.[0]) {
-      if (isInteractive) {
-        dragInstance.current[0].enable();
-      } else {
-        dragInstance.current[0].disable();
-      }
-    }
-  }, [isInteractive]);
+    recomputeGrid();
+    window.addEventListener("resize", recomputeGrid);
+    return () => window.removeEventListener("resize", recomputeGrid);
+  }, []);
 
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current) return;
 
-    const element = canvasRef.current;
-    const container = containerRef.current;
-
-    // Initial center-ish offset so wrapping is symmetric
-    const startX = -TILE_WIDTH;
-    const startY = -TILE_HEIGHT;
-    gsap.set(element, { x: startX, y: startY });
-
-    position.current = { x: startX, y: startY };
-    target.current = { x: startX, y: startY };
-
-    // Compute initial grid and listen for resize
-    recomputeGrid();
-    const onResize = () => {
-      recomputeGrid();
-    };
-    window.addEventListener("resize", onResize);
-
-    dragInstance.current = Draggable.create(element, {
+    // Logika Draggable yang lebih sederhana dan stabil
+    dragInstance.current = Draggable.create(canvasRef.current, {
       type: "x,y",
-      trigger: container,
-      inertia: {
-        resistance: 750,
-      },
+      trigger: containerRef.current,
+      inertia: true, // Gunakan inertia bawaan GSAP untuk efek "lempar"
       cursor: "grab",
       activeCursor: "grabbing",
-      onDrag: function () {
-        target.current.x = this.x;
-        target.current.y = this.y;
-      },
-      onThrowUpdate: function () {
-        target.current.x = this.x;
-        target.current.y = this.y;
-      },
+    })[0];
+
+    // Animasi masuk untuk semua item proyek
+    gsap.from(".project-item-wrapper", {
+      opacity: 0,
+      scale: 0.95,
+      duration: 0.8,
+      ease: "power3.out",
+      stagger: 0.05,
     });
 
-    const onWheel = (event: WheelEvent) => {
-      if (!isInteractiveRef.current) return;
-      event.preventDefault();
-
-      // --- PERBAIKAN DI SINI: Kecepatan berbeda untuk setiap sumbu ---
-      const horizontalScrollSpeed = 1.5;
-      const verticalScrollSpeed = 0.8; // Lebih kecil untuk menyeimbangkan
-
-      target.current.x -= event.deltaX * horizontalScrollSpeed;
-      target.current.y -= event.deltaY * verticalScrollSpeed;
-    };
-
-    container.addEventListener("wheel", onWheel, { passive: false });
-
-    const checkBounds = () => {
-      const dragger = dragInstance.current?.[0];
-      if (!dragger) return;
-      const thresholdX = TILE_WIDTH / 2;
-      const thresholdY = TILE_HEIGHT / 2;
-
-      if (dragger.x > startX + thresholdX) {
-        const newX = dragger.x - TILE_WIDTH;
-        gsap.set(element, { x: newX });
-        dragger.update(true);
-        position.current.x = newX;
-        target.current.x -= TILE_WIDTH;
-      } else if (dragger.x < startX - thresholdX) {
-        const newX = dragger.x + TILE_WIDTH;
-        gsap.set(element, { x: newX });
-        dragger.update(true);
-        position.current.x = newX;
-        target.current.x += TILE_WIDTH;
-      }
-      if (dragger.y > startY + thresholdY) {
-        const newY = dragger.y - TILE_HEIGHT;
-        gsap.set(element, { y: newY });
-        dragger.update(true);
-        position.current.y = newY;
-        target.current.y -= TILE_HEIGHT;
-      } else if (dragger.y < startY - thresholdY) {
-        const newY = dragger.y + TILE_HEIGHT;
-        gsap.set(element, { y: newY });
-        dragger.update(true);
-        position.current.y = newY;
-        target.current.y += TILE_HEIGHT;
-      }
-    };
-
-    const update = () => {
-      const dragger = dragInstance.current?.[0];
-      if (!dragger) return;
-
-      if (dragger.isDragging || dragger.isThrowing) {
-        position.current.x = dragger.x;
-        position.current.y = dragger.y;
-        return;
-      }
-
-      const damping = 0.025;
-      position.current.x += (target.current.x - position.current.x) * damping;
-      position.current.y += (target.current.y - position.current.y) * damping;
-
-      gsap.set(element, { x: position.current.x, y: position.current.y });
-      dragger.update(true);
-
-      checkBounds();
-    };
-
-    gsap.ticker.add(update);
-
     return () => {
-      gsap.ticker.remove(update);
-      dragInstance.current?.[0].kill();
-      container.removeEventListener("wheel", onWheel);
-      window.removeEventListener("resize", onResize);
+      dragInstance.current?.kill();
     };
-  }, []);
+  }, [tiles]); // Jalankan ulang Draggable jika jumlah tile berubah
+
+  useEffect(() => {
+    // Enable/disable drag saat modal muncul/hilang
+    if (dragInstance.current) {
+      isInteractive
+        ? dragInstance.current.enable()
+        : dragInstance.current.disable();
+    }
+  }, [isInteractive]);
 
   return (
     <div
@@ -202,16 +103,20 @@ export default function ProjectsView({
               row * (TILE_HEIGHT + GAP) + projectRow * (GRID_UNIT + GAP);
 
             return (
-              <ProjectItem
+              <div
                 key={`${project.id}-${row}-${col}`}
-                project={project}
-                onSelect={onProjectSelect}
+                className="project-item-wrapper"
                 style={{
                   position: "absolute",
                   transform: `translate(${x}px, ${y}px)`,
                   pointerEvents: !isInteractive ? "none" : "auto",
                 }}
-              />
+              >
+                <ProjectItem
+                  project={project}
+                  onSelect={() => onProjectSelect(project)}
+                />
+              </div>
             );
           })
         )}
