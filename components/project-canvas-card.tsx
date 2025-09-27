@@ -47,17 +47,27 @@ const galleryLayouts = [
 interface ProjectCanvasCardProps {
   project: Project;
   onSelect: (project: Project) => void;
+  onImageZoom?: (project: Project) => void;
+  onHover?: (projectId: string | null) => void;
   scale: number;
   isOtherHovered?: boolean;
-  index: number; // ✅ BARU: Prop 'index' untuk memilih layout
+  isFocused?: boolean;
+  isOtherFocused?: boolean;
+  isImageZoomed?: boolean;
+  index: number;
 }
 
 export default function ProjectCanvasCard({
   project,
   onSelect,
+  onImageZoom,
+  onHover,
   scale,
   isOtherHovered = false,
-  index, // Terima prop 'index'
+  isFocused = false,
+  isOtherFocused = false,
+  isImageZoomed = false,
+  index,
 }: ProjectCanvasCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const folderRef = useRef<HTMLDivElement>(null);
@@ -74,6 +84,7 @@ export default function ProjectCanvasCard({
 
   const handleMouseEnter = () => {
     setIsHovered(true);
+    onHover?.(project.id);
 
     // Kill any existing animations to prevent conflicts
     gsap.killTweensOf([folderRef.current, titleRef.current]);
@@ -82,7 +93,7 @@ export default function ProjectCanvasCard({
     }
     gsap.killTweensOf(galleryImageRefs.current);
 
-    // Folder animation
+    // Folder animation - always animate on hover
     gsap.to(folderRef.current, {
       y: -8,
       duration: 0.4,
@@ -90,8 +101,8 @@ export default function ProjectCanvasCard({
       overwrite: true,
     });
 
-    // Papers animation
-    if (paperRef.current?.children) {
+    // Papers animation - animate unless focused (focused has different animation)
+    if (paperRef.current?.children && !isFocused) {
       gsap.to(Array.from(paperRef.current.children), {
         y: -20,
         duration: 0.7,
@@ -101,7 +112,7 @@ export default function ProjectCanvasCard({
       });
     }
 
-    // Title animation
+    // Title animation - always show on hover
     gsap.to(titleRef.current, {
       opacity: 1,
       y: 0,
@@ -111,8 +122,8 @@ export default function ProjectCanvasCard({
       overwrite: true,
     });
 
-    // Gallery images animation
-    if (galleryImageRefs.current.length > 0 && selectedLayout) {
+    // Gallery images animation - show unless focused (focused has different layout)
+    if (galleryImageRefs.current.length > 0 && selectedLayout && !isFocused) {
       galleryImageRefs.current.forEach((img, idx) => {
         if (img && selectedLayout[idx]) {
           const position = selectedLayout[idx];
@@ -122,9 +133,9 @@ export default function ProjectCanvasCard({
             rotate: position.rotate,
             scale: 1,
             opacity: 1,
-            duration: 0.6,
-            ease: "back.out(2)",
-            delay: 0.08 * idx,
+            duration: 0.5,
+            ease: "power2.out",
+            delay: 0.06 * idx,
             overwrite: true,
           });
         }
@@ -134,6 +145,7 @@ export default function ProjectCanvasCard({
 
   const handleMouseLeave = () => {
     setIsHovered(false);
+    onHover?.(null);
 
     // Kill any existing animations to prevent conflicts
     gsap.killTweensOf([folderRef.current, titleRef.current]);
@@ -142,55 +154,259 @@ export default function ProjectCanvasCard({
     }
     gsap.killTweensOf(galleryImageRefs.current);
 
-    // Folder return animation
-    gsap.to(folderRef.current, {
-      y: 0,
-      duration: 0.3,
-      ease: "power2.out",
-      overwrite: true,
-    });
-
-    // Papers return animation
-    if (paperRef.current?.children) {
-      gsap.to(Array.from(paperRef.current.children), {
+    // Only animate back if not focused (focused state should maintain its position)
+    if (!isFocused) {
+      // Folder return animation
+      gsap.to(folderRef.current, {
         y: 0,
-        duration: 0.5,
-        ease: "expo.out",
-        stagger: 0.03,
+        duration: 0.3,
+        ease: "power2.out",
+        overwrite: true,
+      });
+
+      // Papers return animation
+      if (paperRef.current?.children) {
+        gsap.to(Array.from(paperRef.current.children), {
+          y: 0,
+          duration: 0.4,
+          ease: "power2.out",
+          stagger: 0.03,
+          overwrite: true,
+        });
+      }
+
+      // Title hide animation
+      gsap.to(titleRef.current, {
+        opacity: 0,
+        y: -10,
+        duration: 0.3,
+        ease: "power2.in",
+        overwrite: true,
+      });
+
+      // Gallery images hide animation
+      gsap.to(galleryImageRefs.current, {
+        x: 0,
+        y: 0,
+        scale: 0,
+        opacity: 0,
+        rotate: 0,
+        duration: 0.25,
+        ease: "power2.in",
         overwrite: true,
       });
     }
-
-    // Title hide animation
-    gsap.to(titleRef.current, {
-      opacity: 0,
-      y: -10,
-      duration: 0.3,
-      ease: "power2.in",
-      overwrite: true,
-    });
-
-    // Gallery images hide animation
-    gsap.to(galleryImageRefs.current, {
-      x: 0,
-      y: 0,
-      scale: 0,
-      opacity: 0,
-      rotate: 0,
-      duration: 0.3,
-      ease: "power2.in",
-      overwrite: true,
-    });
   };
 
+  // Handle focus and blur effects - ONLY for focus states, not hover
   useEffect(() => {
-    gsap.to(cardRef.current, {
-      opacity: isOtherHovered && !isHovered ? 0.3 : 1,
-      filter: isOtherHovered && !isHovered ? "blur(1px)" : "blur(0px)",
-      duration: 0.3,
-      ease: "power2.out",
-    });
-  }, [isOtherHovered, isHovered]);
+    if (isFocused) {
+      // Kill all existing animations first to prevent conflicts
+      gsap.killTweensOf([cardRef.current, folderRef.current, titleRef.current]);
+      if (paperRef.current?.children) {
+        gsap.killTweensOf(Array.from(paperRef.current.children));
+      }
+      gsap.killTweensOf(galleryImageRefs.current);
+
+      // Project is focused - enlarge and highlight
+      gsap.to(cardRef.current, {
+        scale: scale * 1.2,
+        opacity: 1,
+        filter: "blur(0px)",
+        zIndex: 100,
+        duration: 0.5,
+        ease: "power2.out",
+        overwrite: true,
+      });
+
+      // Transform gallery images to spatial horizontal layout when focused
+      if (galleryImageRefs.current.length > 0) {
+        galleryImageRefs.current.forEach((img, idx) => {
+          if (img) {
+            // Clear any existing event handlers to prevent conflicts
+            img.onmouseenter = null;
+            img.onmouseleave = null;
+
+            // Horizontal layout: spread images with more spacing
+            const spacing = 160;
+            const totalWidth = (galleryImageRefs.current.length - 1) * spacing;
+            const startX = -totalWidth / 2;
+
+            gsap.to(img, {
+              x: startX + idx * spacing,
+              y: -100,
+              rotate: 0,
+              scale: 1.4,
+              opacity: 1,
+              duration: 0.6,
+              ease: "power2.out",
+              delay: idx * 0.08,
+              overwrite: true,
+            });
+
+            // Add smooth hover effects to gallery images when focused
+            img.style.cursor = "pointer";
+            img.onmouseenter = () => {
+              gsap.to(img, {
+                scale: 1.55,
+                rotate: (Math.random() - 0.5) * 8, // Smoother random rotation
+                duration: 0.25,
+                ease: "power2.out",
+                overwrite: true,
+              });
+            };
+            img.onmouseleave = () => {
+              gsap.to(img, {
+                scale: 1.4,
+                rotate: 0,
+                duration: 0.25,
+                ease: "power2.out",
+                overwrite: true,
+              });
+            };
+          }
+        });
+      }
+
+      // Transform papers inside folder to elegant scattered arrangement when focused
+      if (paperRef.current?.children) {
+        const papers = Array.from(paperRef.current.children);
+        papers.forEach((paper, idx) => {
+          // Elegant scattered positions - structured but organic
+          const positions = [
+            { x: -15, y: -40, rotate: -8 },
+            { x: 25, y: -35, rotate: 12 },
+            { x: -35, y: -25, rotate: -15 },
+            { x: 45, y: -20, rotate: 18 },
+          ];
+
+          const position = positions[idx] || { x: 0, y: -30, rotate: 0 };
+
+          gsap.to(paper, {
+            x: position.x,
+            y: position.y,
+            rotate: position.rotate,
+            scale: 1.1,
+            duration: 0.6,
+            ease: "power2.out",
+            delay: idx * 0.08,
+            overwrite: true,
+          });
+        });
+      }
+    } else if (isOtherFocused) {
+      // Another project is focused - make this one transparent
+      gsap.to(cardRef.current, {
+        scale: scale,
+        opacity: 0.2,
+        filter: "blur(2px)",
+        zIndex: 1,
+        duration: 0.5,
+        ease: "power2.out",
+      });
+
+      // Hide gallery images when other project is focused
+      if (galleryImageRefs.current.length > 0) {
+        gsap.to(galleryImageRefs.current, {
+          x: 0,
+          y: 0,
+          scale: 0,
+          opacity: 0,
+          rotate: 0,
+          duration: 0.3,
+          ease: "power2.in",
+        });
+      }
+    } else {
+      // Normal state - reset focus-related animations only
+      gsap.to(cardRef.current, {
+        scale: scale,
+        zIndex: 1,
+        duration: 0.3,
+        ease: "power2.out",
+      });
+
+      // Return gallery images to hidden state when not focused
+      if (galleryImageRefs.current.length > 0) {
+        // Clear hover event handlers
+        galleryImageRefs.current.forEach((img) => {
+          if (img) {
+            img.onmouseenter = null;
+            img.onmouseleave = null;
+            img.style.cursor = "default";
+          }
+        });
+
+        gsap.to(galleryImageRefs.current, {
+          x: 0,
+          y: 0,
+          scale: 0,
+          opacity: 0,
+          rotate: 0,
+          duration: 0.25,
+          ease: "power2.in",
+          overwrite: true,
+        });
+      }
+
+      // Return papers to original positions when not focused
+      if (paperRef.current?.children) {
+        const papers = Array.from(paperRef.current.children);
+        papers.forEach((paper, idx) => {
+          gsap.to(paper, {
+            x: 0,
+            y: 0,
+            rotate: -0.5 + idx * 0.4, // Original rotation
+            scale: 1,
+            duration: 0.4,
+            ease: "power2.out",
+            delay: idx * 0.03,
+            overwrite: true,
+          });
+        });
+      }
+    }
+  }, [isFocused, isOtherFocused, scale]);
+
+  // Handle hover transparency effects separately
+  useEffect(() => {
+    if (!isFocused && !isOtherFocused) {
+      if (isOtherHovered && !isHovered) {
+        // Other project is hovered - make this one transparent
+        gsap.to(cardRef.current, {
+          opacity: 0.3,
+          filter: "blur(1px)",
+          duration: 0.3,
+          ease: "power2.out",
+        });
+      } else {
+        // Normal state - full opacity
+        gsap.to(cardRef.current, {
+          opacity: 1,
+          filter: "blur(0px)",
+          duration: 0.3,
+          ease: "power2.out",
+        });
+      }
+    }
+  }, [isOtherHovered, isHovered, isFocused, isOtherFocused]);
+
+  // Handle image zoom state
+  useEffect(() => {
+    if (isImageZoomed && isFocused) {
+      // Show enlarged image overlay
+      const imageContainer = document.querySelector(
+        `#image-zoom-${project.id}`
+      );
+      if (imageContainer) {
+        gsap.fromTo(
+          imageContainer,
+          { opacity: 0, scale: 0.8 },
+          { opacity: 1, scale: 1, duration: 0.4, ease: "power2.out" }
+        );
+      }
+    }
+  }, [isImageZoomed, isFocused, project.id]);
 
   const cardStyle = {
     position: "absolute" as const,
@@ -249,7 +465,15 @@ export default function ProjectCanvasCard({
                     boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
                   }}
                 >
-                  <div className="relative w-full h-full overflow-hidden rounded-[2px]">
+                  <div
+                    className="relative w-full h-full overflow-hidden rounded-[2px] cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isFocused && isMainImage) {
+                        onImageZoom && onImageZoom(project);
+                      }
+                    }}
+                  >
                     {isMainImage && (
                       <Image
                         src={project.imageUrl}
@@ -257,6 +481,10 @@ export default function ProjectCanvasCard({
                         fill
                         className={`object-cover transition-opacity duration-500 ${
                           imageLoaded ? "opacity-100" : "opacity-0"
+                        } ${
+                          isFocused
+                            ? "hover:scale-105 transition-transform"
+                            : ""
                         }`}
                         onLoad={() => setImageLoaded(true)}
                         sizes="300px"
@@ -316,6 +544,44 @@ export default function ProjectCanvasCard({
           {project.title}
         </h3>
       </div>
+
+      {/* Image Zoom Overlay */}
+      {isImageZoomed && isFocused && (
+        <div
+          id={`image-zoom-${project.id}`}
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center"
+          onClick={() => onImageZoom && onImageZoom(project)}
+        >
+          <div className="relative max-w-4xl max-h-4xl w-full h-full p-8">
+            <Image
+              src={project.imageUrl}
+              alt={project.title}
+              fill
+              className="object-contain"
+              sizes="100vw"
+            />
+
+            {/* Close Button */}
+            <button
+              className="absolute top-4 right-4 w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white"
+              onClick={(e) => {
+                e.stopPropagation();
+                // Handle close zoom
+              }}
+            >
+              ✕
+            </button>
+
+            {/* Project Info */}
+            <div className="absolute bottom-8 left-8 text-white">
+              <h2 className="text-2xl font-serif font-bold mb-2">
+                {project.title}
+              </h2>
+              <p className="text-gray-300 max-w-md">{project.description}</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
