@@ -82,6 +82,12 @@ export default function ProjectCanvasCard({
   const selectedLayout =
     galleryLayouts[index % galleryLayouts.length] || galleryLayouts[0];
 
+  // ✅ Hitung jumlah gambar yang akan ditampilkan (maksimal 4, minimal 1)
+  const imageCount = Math.min(
+    4,
+    Math.max(1, project.imageGallery?.length || 1)
+  );
+
   const handleMouseEnter = () => {
     setIsHovered(true);
     onHover?.(project.id);
@@ -124,7 +130,7 @@ export default function ProjectCanvasCard({
 
     // Gallery images animation - show unless focused (focused has different layout)
     if (galleryImageRefs.current.length > 0 && selectedLayout && !isFocused) {
-      galleryImageRefs.current.forEach((img, idx) => {
+      galleryImageRefs.current.slice(0, imageCount).forEach((img, idx) => {
         if (img && selectedLayout[idx]) {
           const position = selectedLayout[idx];
           gsap.to(img, {
@@ -449,52 +455,54 @@ export default function ProjectCanvasCard({
           className="absolute top-1 left-0 right-0 h-full"
           style={{ zIndex: 20 }}
         >
-          {Array.from(
-            { length: Math.min(4, project.technologies.length) },
-            (_, index) => {
-              const isMainImage = index === 0;
-              return (
+          {Array.from({ length: imageCount }, (_, index) => {
+            const isMainImage = index === 0;
+            // Gunakan gambar dari imageGallery, fallback ke imageUrl untuk gambar utama
+            const imageUrl =
+              project.imageGallery?.[index] ||
+              (isMainImage ? project.imageUrl : null);
+
+            return (
+              <div
+                key={index}
+                className="absolute top-0 left-3 right-5 h-20 bg-white border border-gray-200"
+                style={{
+                  borderRadius: "2px",
+                  transform: `rotate(${-0.5 + index * 0.4}deg) translateY(${
+                    index * -2
+                  }px)`,
+                  boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
+                }}
+              >
                 <div
-                  key={index}
-                  className="absolute top-0 left-3 right-5 h-20 bg-white border border-gray-200"
-                  style={{
-                    borderRadius: "2px",
-                    transform: `rotate(${-0.5 + index * 0.4}deg) translateY(${
-                      index * -2
-                    }px)`,
-                    boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
+                  className="relative w-full h-full overflow-hidden rounded-[2px] cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isFocused && isMainImage) {
+                      onImageZoom && onImageZoom(project);
+                    }
                   }}
                 >
-                  <div
-                    className="relative w-full h-full overflow-hidden rounded-[2px] cursor-pointer"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (isFocused && isMainImage) {
-                        onImageZoom && onImageZoom(project);
-                      }
-                    }}
-                  >
-                    {isMainImage && (
-                      <Image
-                        src={project.imageUrl}
-                        alt={project.title}
-                        fill
-                        className={`object-cover transition-opacity duration-500 ${
-                          imageLoaded ? "opacity-100" : "opacity-0"
-                        } ${
-                          isFocused
-                            ? "hover:scale-105 transition-transform"
-                            : ""
-                        }`}
-                        onLoad={() => setImageLoaded(true)}
-                        sizes="300px"
-                      />
-                    )}
-                  </div>
+                  {imageUrl && (
+                    <Image
+                      src={imageUrl}
+                      alt={`${project.title} ${
+                        index === 0 ? "main" : `gallery ${index}`
+                      }`}
+                      fill
+                      className={`object-cover transition-opacity duration-500 ${
+                        imageLoaded ? "opacity-100" : "opacity-0"
+                      } ${
+                        isFocused ? "hover:scale-105 transition-transform" : ""
+                      }`}
+                      onLoad={() => index === 0 && setImageLoaded(true)}
+                      sizes="300px"
+                    />
+                  )}
                 </div>
-              );
-            }
-          )}
+              </div>
+            );
+          })}
         </div>
         <div
           className="absolute w-full h-full bg-gray-50 border border-t-0 border-gray-300"
@@ -514,24 +522,33 @@ export default function ProjectCanvasCard({
 
       {/* Galeri Gambar Spasial - Foto lebih besar */}
       <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-96 h-48 flex justify-center items-center pointer-events-none">
-        {project.imageGallery?.slice(0, 4).map((imgUrl, index) => (
-          <div
-            key={index}
-            ref={(el) => {
-              if (el) galleryImageRefs.current[index] = el;
-            }}
-            // Foto diperbesar dari w-20 h-20 menjadi w-28 h-28
-            className="absolute w-28 h-28 bg-white rounded-xl border-2 border-white shadow-xl opacity-0"
-            style={{ transform: "scale(0)" }}
-          >
-            <Image
-              src={imgUrl}
-              alt={`Project gallery image ${index + 1}`}
-              fill
-              className="object-cover rounded-lg"
-            />
-          </div>
-        ))}
+        {Array.from({ length: imageCount }, (_, index) => {
+          // Gunakan gambar dari imageGallery, fallback ke imageUrl untuk gambar utama
+          const imgUrl =
+            project.imageGallery?.[index] ||
+            (index === 0 ? project.imageUrl : null);
+
+          if (!imgUrl) return null;
+
+          return (
+            <div
+              key={index}
+              ref={(el) => {
+                if (el) galleryImageRefs.current[index] = el;
+              }}
+              // Foto diperbesar dari w-20 h-20 menjadi w-28 h-28
+              className="absolute w-28 h-28 bg-white rounded-xl border-2 border-white shadow-xl opacity-0"
+              style={{ transform: "scale(0)" }}
+            >
+              <Image
+                src={imgUrl}
+                alt={`${project.title} gallery image ${index + 1}`}
+                fill
+                className="object-cover rounded-lg"
+              />
+            </div>
+          );
+        })}
       </div>
 
       {/* Project Title - Di bawah folder */}
