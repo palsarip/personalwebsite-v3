@@ -6,19 +6,42 @@ import CustomCursor from "@/components/custom-cursor";
 import Dock from "@/components/dock";
 import Header from "@/components/header";
 import HeroText from "@/components/hero-text";
-import ProjectsView from "@/components/projects-view";
-import AboutView from "@/components/about-view";
-import ContactView from "@/components/contact-view";
-import Window from "@/components/window";
-import ProjectDetailContent from "@/components/project-detail-content";
-import { type Project } from "@/data/projects";
+import LazyWrapper, {
+  LazyPortfolioView,
+  LazyAboutView,
+  LazyContactView,
+} from "@/components/lazy-wrapper";
+import ErrorBoundary from "@/components/error-boundary";
+import SkipNavigation from "@/components/skip-navigation";
+import { useKeyboardNavigation } from "@/hooks/use-keyboard-navigation";
+import { useTouchDevice } from "@/hooks/use-touch-device";
+import { trackPageView, trackInteraction } from "@/lib/analytics";
 
-type ViewId = "home" | "projects" | "about" | "contact";
+type ViewId = "home" | "portfolio" | "about" | "contact";
 
 export default function Home() {
   const [activeView, setActiveView] = useState<ViewId>("home");
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const contentRef = useRef<HTMLDivElement | null>(null);
+  const isTouchDevice = useTouchDevice();
+
+  // Keyboard navigation
+  useKeyboardNavigation({
+    onArrowKeys: (direction) => {
+      if (activeView === "home") {
+        // Navigate between dock items with arrow keys
+        const views: ViewId[] = ["home", "portfolio", "about", "contact"];
+        const currentIndex = views.indexOf(activeView);
+
+        if (direction === "right" && currentIndex < views.length - 1) {
+          navigateTo(views[currentIndex + 1]);
+        } else if (direction === "left" && currentIndex > 0) {
+          navigateTo(views[currentIndex - 1]);
+        }
+      }
+    },
+    enabled: true,
+  });
 
   useLayoutEffect(() => {
     gsap.fromTo(
@@ -29,42 +52,52 @@ export default function Home() {
   }, [activeView]);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setSelectedProject(null);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, []);
+    trackPageView(activeView);
+  }, [activeView]);
 
   const navigateTo = (id: string) => {
-    if (id === activeView) return;
+    if (id === activeView || isLoading) return;
+
+    setIsLoading(true);
+    trackInteraction("navigate", id);
+
     gsap.to(contentRef.current, {
       opacity: 0,
       duration: 0.5,
       ease: "power2.inOut",
       onComplete: () => {
         setActiveView(id as ViewId);
+        setIsLoading(false);
+
+        // Focus management for accessibility
+        const mainContent = document.getElementById("main-content");
+        if (mainContent) {
+          mainContent.focus();
+        }
       },
     });
   };
 
   const renderView = () => {
     switch (activeView) {
-      case "projects":
+      case "portfolio":
         return (
-          <ProjectsView
-            isInteractive={!selectedProject}
-            onProjectSelect={setSelectedProject}
-          />
+          <LazyWrapper>
+            <LazyPortfolioView />
+          </LazyWrapper>
         );
       case "about":
-        return <AboutView />;
+        return (
+          <LazyWrapper>
+            <LazyAboutView />
+          </LazyWrapper>
+        );
       case "contact":
-        return <ContactView />;
+        return (
+          <LazyWrapper>
+            <LazyContactView />
+          </LazyWrapper>
+        );
       case "home":
       default:
         return <HeroText />;
@@ -72,23 +105,32 @@ export default function Home() {
   };
 
   return (
-    <main className="relative flex items-center justify-center min-h-screen cursor-none">
-      <Header />
-      <CustomCursor />
+    <>
+      <SkipNavigation />
+      <ErrorBoundary>
+        <main
+          className={`relative flex items-center justify-center min-h-screen ${
+            !isTouchDevice ? "cursor-none" : ""
+          }`}
+          role="main"
+        >
+          <Header />
+          <CustomCursor />
 
-      <div ref={contentRef} className="relative z-10">
-        {renderView()}
-      </div>
+          <div
+            ref={contentRef}
+            className="relative z-10"
+            id="main-content"
+            tabIndex={-1}
+            aria-live="polite"
+            aria-label={`Current view: ${activeView}`}
+          >
+            {renderView()}
+          </div>
 
-      <Dock onNavigate={navigateTo} activeView={activeView} />
-
-      <Window
-        title={selectedProject?.title || ""}
-        isOpen={!!selectedProject}
-        onClose={() => setSelectedProject(null)}
-      >
-        {selectedProject && <ProjectDetailContent project={selectedProject} />}
-      </Window>
-    </main>
+          <Dock onNavigate={navigateTo} activeView={activeView} />
+        </main>
+      </ErrorBoundary>
+    </>
   );
 }

@@ -1,36 +1,127 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Naufal Syarif - Personal Portfolio
 
-## Getting Started
+A modern, interactive portfolio website built with Next.js 15, featuring smooth animations, custom cursor interactions, and an innovative liquid distortion effect.
 
-First, run the development server:
+## ✨ Features
+
+- **Interactive Design**: Custom cursor with smooth GSAP animations
+- **Liquid Distortion Effect**: Unique hover effect on hero text
+- **Draggable Project Grid**: Infinite scrolling project showcase
+- **Modal Windows**: Detailed project views with smooth transitions
+- **Responsive Design**: Optimized for all device sizes
+- **Modern Tech Stack**: Next.js 15, React 19, TypeScript, Tailwind CSS 4
+
+## 🚀 Tech Stack
+
+- **Framework**: Next.js 15 with App Router
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS 4
+- **Animations**: GSAP with Draggable plugin
+- **Icons**: Lucide React
+- **Graphics**: PixiJS for advanced effects
+- **Package Manager**: Bun
+
+## 🛠️ Installation
+
+1. Clone the repository:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
+git clone https://github.com/yourusername/personalwebsite-v3.git
+cd personalwebsite-v3
+```
+
+2. Install dependencies:
+
+```bash
+bun install
+```
+
+3. Run the development server:
+
+```bash
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📁 Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+├── app/                    # Next.js App Router
+│   ├── layout.tsx         # Root layout with fonts and metadata
+│   ├── page.tsx           # Main page component
+│   └── globals.css        # Global styles
+├── components/            # Reusable React components
+│   ├── custom-cursor.tsx  # Custom cursor implementation
+│   ├── dock.tsx          # Navigation dock
+│   ├── hero-text.tsx     # Hero section with liquid effect
+│   ├── projects-view.tsx # Draggable project grid
+│   └── window.tsx        # Modal window component
+├── data/                 # Static data
+│   └── projects.ts       # Project information
+└── public/              # Static assets
+```
 
-## Learn More
+## 🎨 Key Components
 
-To learn more about Next.js, take a look at the following resources:
+### Custom Cursor
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Smooth-following cursor with GSAP quickTo for optimal performance.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Liquid Distortion Effect
 
-## Deploy on Vercel
+SVG filter-based distortion effect that responds to mouse movement on the hero text.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Draggable Project Grid
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Infinite grid of projects using GSAP Draggable with inertia for natural feel.
+
+### Modal System
+
+Smooth modal transitions with backdrop blur and escape key handling.
+
+## 🔧 Configuration
+
+### Environment Variables
+
+Create a `.env.local` file for any environment-specific configurations.
+
+### Image Optimization
+
+Images are optimized through Next.js Image component with Unsplash integration.
+
+## 📱 Browser Support
+
+- Chrome (recommended)
+- Firefox
+- Safari
+- Edge
+
+## 🚀 Deployment
+
+The project is optimized for deployment on Vercel:
+
+```bash
+bun run build
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+## 📄 License
+
+This project is for personal use. Please respect the design and code.
+
+## 📞 Contact
+
+- **Email**: [your-email@example.com]
+- **LinkedIn**: [your-linkedin]
+- **GitHub**: [your-github]
+
+---
+
+Built with ❤️ by Naufal Syarif
