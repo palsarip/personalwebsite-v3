@@ -44,7 +44,7 @@ export default function CanvasMinimap({
   };
 
   return (
-    <div className="fixed top-6 right-6 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 p-3">
+    <div className="minimap fixed top-6 right-6 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 p-3">
       <div className="mb-2">
         <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
           Portfolio Map

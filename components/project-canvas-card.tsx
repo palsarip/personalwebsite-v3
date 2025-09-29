@@ -76,6 +76,7 @@ export default function ProjectCanvasCard({
   const galleryImageRefs = useRef<HTMLDivElement[]>([]);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const isTransitioningRef = useRef(false);
 
   const categoryColorClass = getCategoryStyle(project.category);
   // ✅ Pilih layout secara dinamis berdasarkan index proyek dengan safety check
@@ -89,6 +90,9 @@ export default function ProjectCanvasCard({
   );
 
   const handleMouseEnter = () => {
+    // Don't trigger hover animations if project is focused
+    if (isFocused || isTransitioningRef.current) return;
+
     setIsHovered(true);
     onHover?.(project.id);
 
@@ -153,6 +157,9 @@ export default function ProjectCanvasCard({
     setIsHovered(false);
     onHover?.(null);
 
+    // Don't animate back if focused or transitioning (focused state should maintain its position)
+    if (isFocused || isTransitioningRef.current) return;
+
     // Kill any existing animations to prevent conflicts
     gsap.killTweensOf([folderRef.current, titleRef.current]);
     if (paperRef.current?.children) {
@@ -160,59 +167,64 @@ export default function ProjectCanvasCard({
     }
     gsap.killTweensOf(galleryImageRefs.current);
 
-    // Only animate back if not focused (focused state should maintain its position)
-    if (!isFocused) {
-      // Folder return animation
-      gsap.to(folderRef.current, {
+    // Folder return animation
+    gsap.to(folderRef.current, {
+      y: 0,
+      duration: 0.3,
+      ease: "power2.out",
+      overwrite: true,
+    });
+
+    // Papers return animation
+    if (paperRef.current?.children) {
+      gsap.to(Array.from(paperRef.current.children), {
         y: 0,
-        duration: 0.3,
+        duration: 0.4,
         ease: "power2.out",
-        overwrite: true,
-      });
-
-      // Papers return animation
-      if (paperRef.current?.children) {
-        gsap.to(Array.from(paperRef.current.children), {
-          y: 0,
-          duration: 0.4,
-          ease: "power2.out",
-          stagger: 0.03,
-          overwrite: true,
-        });
-      }
-
-      // Title hide animation
-      gsap.to(titleRef.current, {
-        opacity: 0,
-        y: -10,
-        duration: 0.3,
-        ease: "power2.in",
-        overwrite: true,
-      });
-
-      // Gallery images hide animation
-      gsap.to(galleryImageRefs.current, {
-        x: 0,
-        y: 0,
-        scale: 0,
-        opacity: 0,
-        rotate: 0,
-        duration: 0.25,
-        ease: "power2.in",
+        stagger: 0.03,
         overwrite: true,
       });
     }
+
+    // Title hide animation
+    gsap.to(titleRef.current, {
+      opacity: 0,
+      y: -10,
+      duration: 0.3,
+      ease: "power2.in",
+      overwrite: true,
+    });
+
+    // Gallery images hide animation
+    gsap.to(galleryImageRefs.current, {
+      x: 0,
+      y: 0,
+      scale: 0,
+      opacity: 0,
+      rotate: 0,
+      duration: 0.25,
+      ease: "power2.in",
+      overwrite: true,
+    });
   };
 
   // Handle focus and blur effects - ONLY for focus states, not hover
   useEffect(() => {
     if (isFocused) {
+      // Set transition flag to prevent hover animations
+      isTransitioningRef.current = true;
+
       // Kill all existing animations first to prevent conflicts
       gsap.killTweensOf([cardRef.current, folderRef.current, titleRef.current]);
       if (paperRef.current?.children) {
         gsap.killTweensOf(Array.from(paperRef.current.children));
       }
-      gsap.killTweensOf(galleryImageRefs.current);
+      // Kill gallery images animations more aggressively
+      if (galleryImageRefs.current.length > 0) {
+        galleryImageRefs.current.forEach((img) => {
+          if (img) gsap.killTweensOf(img);
+        });
+      }
 
       // Project is focused - enlarge and highlight
       gsap.to(cardRef.current, {
@@ -223,52 +235,79 @@ export default function ProjectCanvasCard({
         duration: 0.5,
         ease: "power2.out",
         overwrite: true,
+        onComplete: () => {
+          // Clear transition flag after focus animation completes
+          isTransitioningRef.current = false;
+        },
       });
 
-      // Transform gallery images to spatial horizontal layout when focused
+      // Transform gallery images to creative curved layout when focused
       if (galleryImageRefs.current.length > 0) {
-        galleryImageRefs.current.forEach((img, idx) => {
+        galleryImageRefs.current.slice(0, imageCount).forEach((img, idx) => {
           if (img) {
             // Clear any existing event handlers to prevent conflicts
             img.onmouseenter = null;
             img.onmouseleave = null;
 
-            // Horizontal layout: spread images with more spacing
-            const spacing = 160;
-            const totalWidth = (galleryImageRefs.current.length - 1) * spacing;
+            // Creative curved layout with varied spacing and sizes
+            const baseSpacing = 220; // Increased gap between images
+            const totalWidth = (imageCount - 1) * baseSpacing;
             const startX = -totalWidth / 2;
 
+            // Create curved arc positions
+            const normalizedIdx = idx / Math.max(1, imageCount - 1); // 0 to 1
+            const curveHeight = 60; // Height of the curve
+            const curveY =
+              -120 - Math.sin(normalizedIdx * Math.PI) * curveHeight; // Curved upward
+
+            // Varied scales for creative look (different sizes)
+            const scaleVariations = [1.6, 1.3, 1.5, 1.4]; // Different sizes
+            const baseScale =
+              scaleVariations[idx % scaleVariations.length] || 1.4;
+
+            // Subtle rotation for organic feel
+            const rotationVariations = [-3, 2, -1, 4];
+            const rotation =
+              rotationVariations[idx % rotationVariations.length] || 0;
+
             gsap.to(img, {
-              x: startX + idx * spacing,
-              y: -100,
-              rotate: 0,
-              scale: 1.4,
+              x: startX + idx * baseSpacing,
+              y: curveY,
+              rotate: rotation,
+              scale: baseScale,
               opacity: 1,
-              duration: 0.6,
-              ease: "power2.out",
-              delay: idx * 0.08,
-              overwrite: true,
+              duration: 0.5, // Reduced from 0.7 for faster response
+              ease: "power2.out", // Changed from back.out for smoother interruption
+              delay: idx * 0.08, // Reduced from 0.12 for faster stagger
+              overwrite: "auto", // Better handling of interrupted animations
             });
 
             // Add smooth hover effects to gallery images when focused
             img.style.cursor = "pointer";
             img.onmouseenter = () => {
               gsap.to(img, {
-                scale: 1.55,
-                rotate: (Math.random() - 0.5) * 8, // Smoother random rotation
-                duration: 0.25,
+                scale: baseScale * 1.15,
+                rotate: rotation + (Math.random() - 0.5) * 6,
+                y: curveY - 15, // Lift up on hover
+                duration: 0.3,
                 ease: "power2.out",
                 overwrite: true,
               });
+              // Add glow effect on hover
+              img.style.filter =
+                "drop-shadow(0 15px 35px rgba(0,0,0,0.25)) drop-shadow(0 0 20px rgba(255,255,255,0.3))";
             };
             img.onmouseleave = () => {
               gsap.to(img, {
-                scale: 1.4,
-                rotate: 0,
-                duration: 0.25,
+                scale: baseScale,
+                rotate: rotation,
+                y: curveY,
+                duration: 0.3,
                 ease: "power2.out",
                 overwrite: true,
               });
+              // Remove glow effect
+              img.style.filter = "drop-shadow(0 10px 25px rgba(0,0,0,0.15))";
             };
           }
         });
@@ -276,7 +315,10 @@ export default function ProjectCanvasCard({
 
       // Transform papers inside folder to elegant scattered arrangement when focused
       if (paperRef.current?.children) {
-        const papers = Array.from(paperRef.current.children);
+        const papers = Array.from(paperRef.current.children).slice(
+          0,
+          imageCount
+        );
         papers.forEach((paper, idx) => {
           // Elegant scattered positions - structured but organic
           const positions = [
@@ -301,7 +343,7 @@ export default function ProjectCanvasCard({
         });
       }
     } else if (isOtherFocused) {
-      // Another project is focused - make this one transparent
+      // Another project is focused - make this one transparent and reset papers
       gsap.to(cardRef.current, {
         scale: scale,
         opacity: 0.2,
@@ -313,23 +355,88 @@ export default function ProjectCanvasCard({
 
       // Hide gallery images when other project is focused
       if (galleryImageRefs.current.length > 0) {
+        // Kill any existing animations first for immediate response
+        gsap.killTweensOf(galleryImageRefs.current);
+
         gsap.to(galleryImageRefs.current, {
           x: 0,
           y: 0,
           scale: 0,
           opacity: 0,
           rotate: 0,
-          duration: 0.3,
+          duration: 0.25, // Faster reset
           ease: "power2.in",
+          overwrite: "auto",
         });
       }
+
+      // Reset papers to original positions when other project is focused
+      if (paperRef.current?.children) {
+        const papers = Array.from(paperRef.current.children).slice(
+          0,
+          imageCount
+        );
+        papers.forEach((paper, idx) => {
+          gsap.to(paper, {
+            x: 0,
+            y: 0,
+            rotate: -0.5 + idx * 0.4, // Original rotation
+            scale: 1,
+            duration: 0.4,
+            ease: "power2.out",
+            delay: idx * 0.03,
+            overwrite: true,
+          });
+        });
+      }
+
+      // Reset folder position when other project is focused
+      gsap.to(folderRef.current, {
+        y: 0,
+        duration: 0.3,
+        ease: "power2.out",
+        overwrite: true,
+      });
+
+      // Reset title when other project is focused
+      gsap.to(titleRef.current, {
+        opacity: 0,
+        y: -10,
+        duration: 0.3,
+        ease: "power2.in",
+        overwrite: true,
+      });
     } else {
+      // Set transition flag during unfocus
+      isTransitioningRef.current = true;
+
       // Normal state - reset focus-related animations only
       gsap.to(cardRef.current, {
         scale: scale,
         zIndex: 1,
         duration: 0.3,
         ease: "power2.out",
+        onComplete: () => {
+          // Clear transition flag after unfocus animation completes
+          isTransitioningRef.current = false;
+        },
+      });
+
+      // Reset folder position when unfocusing
+      gsap.to(folderRef.current, {
+        y: 0,
+        duration: 0.3,
+        ease: "power2.out",
+        overwrite: true,
+      });
+
+      // Reset title when unfocusing
+      gsap.to(titleRef.current, {
+        opacity: 0,
+        y: -10,
+        duration: 0.3,
+        ease: "power2.in",
+        overwrite: true,
       });
 
       // Return gallery images to hidden state when not focused
@@ -343,21 +450,27 @@ export default function ProjectCanvasCard({
           }
         });
 
+        // Kill any existing animations first for immediate response
+        gsap.killTweensOf(galleryImageRefs.current);
+
         gsap.to(galleryImageRefs.current, {
           x: 0,
           y: 0,
           scale: 0,
           opacity: 0,
           rotate: 0,
-          duration: 0.25,
+          duration: 0.2, // Even faster for unfocus
           ease: "power2.in",
-          overwrite: true,
+          overwrite: "auto",
         });
       }
 
       // Return papers to original positions when not focused
       if (paperRef.current?.children) {
-        const papers = Array.from(paperRef.current.children);
+        const papers = Array.from(paperRef.current.children).slice(
+          0,
+          imageCount
+        );
         papers.forEach((paper, idx) => {
           gsap.to(paper, {
             x: 0,
@@ -429,6 +542,7 @@ export default function ProjectCanvasCard({
       ref={cardRef}
       style={cardStyle}
       className="relative cursor-pointer"
+      data-project-card={project.id}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={() => onSelect(project)}
@@ -465,17 +579,30 @@ export default function ProjectCanvasCard({
             return (
               <div
                 key={index}
-                className="absolute top-0 left-3 right-5 h-20 bg-white border border-gray-200"
+                className="absolute bg-white border border-gray-300"
                 style={{
-                  borderRadius: "2px",
+                  top: "8px", // Small margin from folder top
+                  left: "12px",
+                  right: "12px",
+                  bottom: "8px", // Small margin from folder bottom
+                  borderRadius: "4px",
                   transform: `rotate(${-0.5 + index * 0.4}deg) translateY(${
-                    index * -2
+                    index * -3
                   }px)`,
-                  boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
+                  boxShadow: `
+                    0 ${2 + index}px ${8 + index * 2}px rgba(0,0,0,0.06),
+                    0 1px 3px rgba(0,0,0,0.08),
+                    inset 0 1px 0 rgba(255,255,255,0.8)
+                  `,
+                  background:
+                    "linear-gradient(145deg, #ffffff 0%, #fafafa 100%)",
                 }}
               >
                 <div
-                  className="relative w-full h-full overflow-hidden rounded-[2px] cursor-pointer"
+                  className="relative w-full h-full overflow-hidden cursor-pointer"
+                  style={{
+                    borderRadius: "4px", // Full rounded corners
+                  }}
                   onClick={(e) => {
                     e.stopPropagation();
                     if (isFocused && isMainImage) {
@@ -484,20 +611,58 @@ export default function ProjectCanvasCard({
                   }}
                 >
                   {imageUrl && (
-                    <Image
-                      src={imageUrl}
-                      alt={`${project.title} ${
-                        index === 0 ? "main" : `gallery ${index}`
-                      }`}
-                      fill
-                      className={`object-cover transition-opacity duration-500 ${
-                        imageLoaded ? "opacity-100" : "opacity-0"
-                      } ${
-                        isFocused ? "hover:scale-105 transition-transform" : ""
-                      }`}
-                      onLoad={() => index === 0 && setImageLoaded(true)}
-                      sizes="300px"
-                    />
+                    <>
+                      <Image
+                        src={imageUrl}
+                        alt={`${project.title} ${
+                          index === 0 ? "main" : `gallery ${index}`
+                        }`}
+                        fill
+                        className={`object-cover transition-all duration-500 ${
+                          imageLoaded ? "opacity-100" : "opacity-0"
+                        } ${
+                          isFocused
+                            ? "hover:scale-105 transition-transform"
+                            : ""
+                        }`}
+                        onLoad={() => index === 0 && setImageLoaded(true)}
+                        onError={() => {
+                          console.warn(`Failed to load image: ${imageUrl}`);
+                          if (index === 0) setImageLoaded(true);
+                        }}
+                        sizes="300px"
+                      />
+
+                      {/* Subtle overlay for depth */}
+                      <div
+                        className="absolute inset-0 pointer-events-none"
+                        style={{
+                          background:
+                            "linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%, rgba(0,0,0,0.05) 100%)",
+                        }}
+                      />
+
+                      {/* Corner fold effect for top sheet */}
+                      {index === 0 && (
+                        <div
+                          className="absolute top-0 right-0 pointer-events-none"
+                          style={{
+                            width: "12px",
+                            height: "12px",
+                            background:
+                              "linear-gradient(-45deg, transparent 46%, #e5e5e5 50%, #f5f5f5 54%)",
+                            clipPath: "polygon(0 0, 100% 0, 100% 100%)",
+                          }}
+                        />
+                      )}
+                    </>
+                  )}
+
+                  {/* Fallback for missing images */}
+                  {!imageUrl && (
+                    <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                      <div className="w-8 h-8 bg-gray-300 rounded opacity-50" />
+                    </div>
                   )}
                 </div>
               </div>
@@ -520,8 +685,8 @@ export default function ProjectCanvasCard({
         </div>
       </div>
 
-      {/* Galeri Gambar Spasial - Foto lebih besar */}
-      <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-96 h-48 flex justify-center items-center pointer-events-none">
+      {/* Galeri Gambar Spasial - Layout Kreatif dengan Ukuran Bervariasi */}
+      <div className="absolute -top-60 left-1/2 -translate-x-1/2 w-[800px] h-80 flex justify-center items-center pointer-events-none">
         {Array.from({ length: imageCount }, (_, index) => {
           // Gunakan gambar dari imageGallery, fallback ke imageUrl untuk gambar utama
           const imgUrl =
@@ -530,21 +695,39 @@ export default function ProjectCanvasCard({
 
           if (!imgUrl) return null;
 
+          // Varied sizes for creative layout
+          const sizeVariations = [
+            { w: "w-36", h: "h-24" }, // Landscape
+            { w: "w-28", h: "h-32" }, // Portrait
+            { w: "w-32", h: "h-28" }, // Square-ish
+            { w: "w-40", h: "h-28" }, // Wide
+          ];
+          const size = sizeVariations[index % sizeVariations.length] || {
+            w: "w-32",
+            h: "h-28",
+          };
+
           return (
             <div
               key={index}
               ref={(el) => {
                 if (el) galleryImageRefs.current[index] = el;
               }}
-              // Foto diperbesar dari w-20 h-20 menjadi w-28 h-28
-              className="absolute w-28 h-28 bg-white rounded-xl border-2 border-white shadow-xl opacity-0"
-              style={{ transform: "scale(0)" }}
+              className={`absolute ${size.w} ${size.h} bg-white rounded-2xl border-4 border-white shadow-2xl opacity-0`}
+              style={{
+                transform: "scale(0)",
+                filter: "drop-shadow(0 10px 25px rgba(0,0,0,0.15))",
+                backdropFilter: "blur(10px)",
+              }}
             >
               <Image
                 src={imgUrl}
                 alt={`${project.title} gallery image ${index + 1}`}
                 fill
-                className="object-cover rounded-lg"
+                className="object-cover rounded-xl"
+                onError={() => {
+                  console.warn(`Failed to load gallery image: ${imgUrl}`);
+                }}
               />
             </div>
           );
@@ -576,6 +759,9 @@ export default function ProjectCanvasCard({
               fill
               className="object-contain"
               sizes="100vw"
+              onError={() => {
+                console.warn(`Failed to load zoom image: ${project.imageUrl}`);
+              }}
             />
 
             {/* Close Button */}

@@ -71,6 +71,28 @@ export default function PortfolioView() {
     return () => window.removeEventListener("resize", updateViewportSize);
   }, []);
 
+  // Handle keyboard events (Escape to unfocus)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (isImageZoomed) {
+          // If image is zoomed, close zoom first
+          setIsImageZoomed(false);
+        } else if (focusedProjectId) {
+          // If project is focused, unfocus it
+          handleCloseFocus();
+        }
+        // Don't navigate to home - just unfocus
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [focusedProjectId, isImageZoomed]);
+
   // Calculate canvas bounds with generous padding for infinite feel
 
   const getConstrainedPosition = useCallback(
@@ -483,8 +505,19 @@ export default function PortfolioView() {
         }`}
         onClick={(e) => {
           // Close focus when clicking on empty canvas area
+          // Check if click is not on a project card or other interactive elements
+          const target = e.target as HTMLElement;
+          const isInteractiveElement =
+            target.closest("[data-project-card]") ||
+            target.closest("button") ||
+            target.closest('[role="button"]') ||
+            target.closest(".minimap") ||
+            target.closest(".search-container") ||
+            target.closest(".modal") ||
+            target.closest("input") ||
+            target.closest("select");
 
-          if (focusedProjectId && e.target === containerRef.current) {
+          if (focusedProjectId && !isInteractiveElement) {
             handleCloseFocus();
           }
         }}

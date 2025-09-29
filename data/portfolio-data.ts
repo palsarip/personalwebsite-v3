@@ -16,7 +16,7 @@ export const portfolioProjects: Project[] = [
       "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=600&fit=crop",
     // ✅ Gallery added
     imageGallery: [
-      "https://images.unsplash.com/photo-1611095782384-b58e7c2d4a66?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=400&fit=crop",
       "https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?w=400&h=400&fit=crop",
       "https://images.unsplash.com/photo-1526628953301-3e589a6a8b74?w=400&h=400&fit=crop",
     ],
@@ -42,7 +42,7 @@ export const portfolioProjects: Project[] = [
     // ✅ Gallery added
     imageGallery: [
       "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=400&h=400&fit=crop",
-      "https://images.unsplash.com/photo-1529653762956-b0a27238ab8a?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=400&h=400&fit=crop",
       "https://images.unsplash.com/photo-1580974928064-7fb797c4446b?w=400&h=400&fit=crop",
     ],
     liveUrl: "https://shop-app.example.com",
@@ -65,9 +65,9 @@ export const portfolioProjects: Project[] = [
       "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=800&h=600&fit=crop",
     // ✅ Gallery added
     imageGallery: [
-      "https://images.unsplash.com/photo-1611516491426-03025e6043c8?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1558655146-9f40138edfeb?w=400&h=400&fit=crop",
       "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=400&h=400&fit=crop",
-      "https://images.unsplash.com/photo-1555940280-66e802058222?w=400&h=400&fit=crop",
+      "https://images.unsplash.com/photo-1609921212029-bb5a28e60960?w=400&h=400&fit=crop",
     ],
     featured: true,
     status: "completed",
