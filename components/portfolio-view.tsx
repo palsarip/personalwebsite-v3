@@ -417,13 +417,31 @@ export default function PortfolioView() {
   const handleProjectSelect = (project: Project) => {
     if (focusedProjectId === project.id) {
       // If already focused, zoom to image
-
       setIsImageZoomed(true);
+    } else if (focusedProjectId !== null) {
+      // If another project is already focused, show visual feedback
+      // User must unfocus first before focusing on another project
+
+      // Find the currently focused project card and give it a subtle shake
+      const focusedCard = document.querySelector(
+        `[data-project-card="${focusedProjectId}"]`
+      );
+      if (focusedCard) {
+        gsap.to(focusedCard, {
+          x: "+=5",
+          duration: 0.1,
+          ease: "power2.out",
+          yoyo: true,
+          repeat: 3,
+          onComplete: () => {
+            gsap.set(focusedCard, { x: 0 });
+          },
+        });
+      }
+      return;
     } else {
       // Focus on project (enlarge image)
-
       setFocusedProjectId(project.id);
-
       setIsImageZoomed(false);
 
       // Animate canvas to center the project
@@ -595,10 +613,17 @@ export default function PortfolioView() {
       </div>
 
       {/* Navigation Hint */}
-
       <div className="fixed bottom-6 left-6 text-sm text-gray-500 pointer-events-none">
         <div className="bg-white/80 backdrop-blur-sm px-3 py-2 rounded-lg shadow-sm">
-          Drag to explore • Scroll to zoom • Click projects for details
+          {focusedProjectId ? (
+            <span className="text-blue-600">
+              Press{" "}
+              <kbd className="px-1 py-0.5 bg-gray-200 rounded text-xs">ESC</kbd>{" "}
+              or click empty area to unfocus
+            </span>
+          ) : (
+            "Drag to explore • Scroll to zoom • Click projects for details"
+          )}
         </div>
       </div>
 

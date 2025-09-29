@@ -243,6 +243,9 @@ export default function ProjectCanvasCard({
 
       // Transform gallery images to creative curved layout when focused
       if (galleryImageRefs.current.length > 0) {
+        // Create a timeline for better control and smoother interruption
+        const tl = gsap.timeline({ overwrite: "auto" });
+
         galleryImageRefs.current.slice(0, imageCount).forEach((img, idx) => {
           if (img) {
             // Clear any existing event handlers to prevent conflicts
@@ -270,17 +273,20 @@ export default function ProjectCanvasCard({
             const rotation =
               rotationVariations[idx % rotationVariations.length] || 0;
 
-            gsap.to(img, {
-              x: startX + idx * baseSpacing,
-              y: curveY,
-              rotate: rotation,
-              scale: baseScale,
-              opacity: 1,
-              duration: 0.5, // Reduced from 0.7 for faster response
-              ease: "power2.out", // Changed from back.out for smoother interruption
-              delay: idx * 0.08, // Reduced from 0.12 for faster stagger
-              overwrite: "auto", // Better handling of interrupted animations
-            });
+            // Add to timeline with stagger - no individual delays
+            tl.to(
+              img,
+              {
+                x: startX + idx * baseSpacing,
+                y: curveY,
+                rotate: rotation,
+                scale: baseScale,
+                opacity: 1,
+                duration: 0.4,
+                ease: "power2.out",
+              },
+              idx * 0.05
+            ); // Shorter stagger in timeline
 
             // Add smooth hover effects to gallery images when focused
             img.style.cursor = "pointer";
@@ -358,15 +364,13 @@ export default function ProjectCanvasCard({
         // Kill any existing animations first for immediate response
         gsap.killTweensOf(galleryImageRefs.current);
 
-        gsap.to(galleryImageRefs.current, {
+        // Use immediate set for instant reset, no animation conflicts
+        gsap.set(galleryImageRefs.current, {
           x: 0,
           y: 0,
           scale: 0,
           opacity: 0,
           rotate: 0,
-          duration: 0.25, // Faster reset
-          ease: "power2.in",
-          overwrite: "auto",
         });
       }
 
@@ -453,15 +457,36 @@ export default function ProjectCanvasCard({
         // Kill any existing animations first for immediate response
         gsap.killTweensOf(galleryImageRefs.current);
 
-        gsap.to(galleryImageRefs.current, {
-          x: 0,
-          y: 0,
-          scale: 0,
-          opacity: 0,
-          rotate: 0,
-          duration: 0.2, // Even faster for unfocus
-          ease: "power2.in",
-          overwrite: "auto",
+        // Smooth exit animation - images move back into folder like reverse focus
+        galleryImageRefs.current.slice(0, imageCount).forEach((img, idx) => {
+          if (img) {
+            // Calculate target position inside folder (like paper sheets)
+            const targetX = 0; // Center of folder
+            const targetY = 120; // Move down into folder area
+            const targetRotation = -0.5 + idx * 0.4; // Same rotation as paper sheets
+            const targetScale = 0.3; // Small scale to fit into folder
+
+            // Single smooth animation: Move into folder and fade simultaneously
+            gsap.to(img, {
+              x: targetX,
+              y: targetY,
+              rotate: targetRotation,
+              scale: 0, // Scale to 0 directly (no intermediate scale)
+              opacity: 0,
+              duration: 0.5,
+              ease: "power2.in",
+              // No delay - all start immediately
+              onComplete: () => {
+                // Reset position after animation completes
+                gsap.set(img, {
+                  x: 0,
+                  y: 0,
+                  rotate: 0,
+                  scale: 0,
+                });
+              },
+            });
+          }
         });
       }
 
@@ -541,7 +566,9 @@ export default function ProjectCanvasCard({
     <div
       ref={cardRef}
       style={cardStyle}
-      className="relative cursor-pointer"
+      className={`relative ${
+        isOtherFocused ? "cursor-not-allowed" : "cursor-pointer"
+      }`}
       data-project-card={project.id}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
