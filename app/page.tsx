@@ -2,17 +2,14 @@
 
 import { useState, useRef, useLayoutEffect, useEffect } from "react";
 import gsap from "gsap";
-import CustomCursor from "@/components/custom-cursor";
-import Dock from "@/components/dock";
-import Header from "@/components/header";
-import HeroText from "@/components/hero-text";
+import CustomCursor from "@/components/ui/custom-cursor";
+import HeroText from "@/components/views/hero-text";
 import LazyWrapper, {
   LazyPortfolioView,
   LazyAboutView,
   LazyContactView,
-} from "@/components/lazy-wrapper";
-import ErrorBoundary from "@/components/error-boundary";
-import SkipNavigation from "@/components/skip-navigation";
+} from "@/components/utils/lazy-wrapper";
+import LayoutWrapper from "@/components/layout/layout-wrapper";
 import { useKeyboardNavigation } from "@/hooks/use-keyboard-navigation";
 import { useTouchDevice } from "@/hooks/use-touch-device";
 import { trackPageView, trackInteraction } from "@/lib/analytics";
@@ -34,9 +31,11 @@ export default function Home() {
         const currentIndex = views.indexOf(activeView);
 
         if (direction === "right" && currentIndex < views.length - 1) {
-          navigateTo(views[currentIndex + 1]);
+          const nextView = views[currentIndex + 1];
+          if (nextView) navigateTo(nextView);
         } else if (direction === "left" && currentIndex > 0) {
-          navigateTo(views[currentIndex - 1]);
+          const prevView = views[currentIndex - 1];
+          if (prevView) navigateTo(prevView);
         }
       }
     },
@@ -105,32 +104,26 @@ export default function Home() {
   };
 
   return (
-    <>
-      <SkipNavigation />
-      <ErrorBoundary>
-        <main
-          className={`relative flex items-center justify-center min-h-screen ${
-            !isTouchDevice ? "cursor-none" : ""
-          }`}
-          role="main"
+    <LayoutWrapper onNavigate={navigateTo} activeView={activeView}>
+      <main
+        className={`relative flex items-center justify-center min-h-screen ${
+          !isTouchDevice ? "cursor-none" : ""
+        }`}
+        role="main"
+      >
+        <CustomCursor />
+
+        <div
+          ref={contentRef}
+          className="relative z-10"
+          id="main-content"
+          tabIndex={-1}
+          aria-live="polite"
+          aria-label={`Current view: ${activeView}`}
         >
-          <Header />
-          <CustomCursor />
-
-          <div
-            ref={contentRef}
-            className="relative z-10"
-            id="main-content"
-            tabIndex={-1}
-            aria-live="polite"
-            aria-label={`Current view: ${activeView}`}
-          >
-            {renderView()}
-          </div>
-
-          <Dock onNavigate={navigateTo} activeView={activeView} />
-        </main>
-      </ErrorBoundary>
-    </>
+          {renderView()}
+        </div>
+      </main>
+    </LayoutWrapper>
   );
 }

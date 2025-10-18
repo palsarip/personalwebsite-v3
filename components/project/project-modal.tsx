@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import Image from "next/image";
 import {
   X,
-  ExternalLink,
   Github,
   ChevronLeft,
   ChevronRight,
@@ -23,7 +22,6 @@ export default function ProjectModal({
 }: ProjectModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
     if (isOpen && project) {

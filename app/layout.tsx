@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Libre_Baskerville } from "next/font/google";
 import "./globals.css";
 import { reportWebVitals } from "@/lib/analytics";
-import PerformanceMonitor from "@/components/performance-monitor";
+import PerformanceMonitor from "@/components/utils/performance-monitor";
 
 const inter = Inter({
   subsets: ["latin"],

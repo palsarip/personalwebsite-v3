@@ -1,9 +1,5 @@
 import { Project } from "@/types/portfolio";
 
-// Canvas dimensions and project positioning
-const CANVAS_WIDTH = 3000;
-const CANVAS_HEIGHT = 2000;
-
 export const portfolioProjects: Project[] = [
   {
     id: "1",
@@ -25,10 +21,6 @@ export const portfolioProjects: Project[] = [
     featured: true,
     status: "completed",
     year: 2024,
-    x: 400,
-    y: 300,
-    width: 320,
-    height: 240,
   },
   {
     id: "2",
@@ -49,10 +41,6 @@ export const portfolioProjects: Project[] = [
     featured: false,
     status: "completed",
     year: 2024,
-    x: 800,
-    y: 200,
-    width: 280,
-    height: 200,
   },
   {
     id: "3",
@@ -72,10 +60,6 @@ export const portfolioProjects: Project[] = [
     featured: true,
     status: "completed",
     year: 2023,
-    x: 200,
-    y: 600,
-    width: 300,
-    height: 220,
   },
   {
     id: "4",
@@ -96,10 +80,6 @@ export const portfolioProjects: Project[] = [
     featured: false,
     status: "in-progress",
     year: 2024,
-    x: 1200,
-    y: 400,
-    width: 280,
-    height: 200,
   },
   {
     id: "5",
@@ -119,10 +99,6 @@ export const portfolioProjects: Project[] = [
     featured: false,
     status: "completed",
     year: 2023,
-    x: 600,
-    y: 700,
-    width: 260,
-    height: 180,
   },
   {
     id: "6",
@@ -144,10 +120,6 @@ export const portfolioProjects: Project[] = [
     featured: true,
     status: "completed",
     year: 2024,
-    x: 1000,
-    y: 650,
-    width: 300,
-    height: 220,
   },
   {
     id: "7",
@@ -167,10 +139,6 @@ export const portfolioProjects: Project[] = [
     featured: false,
     status: "concept",
     year: 2024,
-    x: 1400,
-    y: 250,
-    width: 280,
-    height: 200,
   },
   {
     id: "8",
@@ -189,16 +157,5 @@ export const portfolioProjects: Project[] = [
     featured: false,
     status: "completed",
     year: 2023,
-    x: 300,
-    y: 900,
-    width: 260,
-    height: 180,
   },
 ];
-
-export const canvasBounds = {
-  minX: 0,
-  maxX: CANVAS_WIDTH,
-  minY: 0,
-  maxY: CANVAS_HEIGHT,
-};

@@ -78,7 +78,7 @@ export const trackPerformance = analytics.trackPerformance.bind(analytics);
 export const trackError = analytics.trackError.bind(analytics);
 
 // Web Vitals tracking
-export const reportWebVitals = (metric: any) => {
+export const reportWebVitals = (metric: { name: string; value: number }) => {
   trackPerformance(metric.name, metric.value);
 };
 
@@ -95,7 +95,7 @@ if (typeof window !== "undefined") {
         }
       });
       observer.observe({ entryTypes: ["longtask"] });
-    } catch (e) {
+    } catch {
       // PerformanceObserver not supported
     }
   }

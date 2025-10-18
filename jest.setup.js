@@ -5,9 +5,14 @@ jest.mock("gsap", () => ({
   gsap: {
     fromTo: jest.fn(),
     to: jest.fn(),
+    set: jest.fn(),
+    killTweensOf: jest.fn(),
     timeline: jest.fn(() => ({
-      from: jest.fn(),
-      to: jest.fn(),
+      from: jest.fn().mockReturnThis(),
+      to: jest.fn().mockReturnThis(),
+      fromTo: jest.fn().mockReturnThis(),
+      set: jest.fn().mockReturnThis(),
+      kill: jest.fn(),
     })),
     quickTo: jest.fn(() => jest.fn()),
     registerPlugin: jest.fn(),
@@ -23,7 +28,7 @@ jest.mock("gsap", () => ({
 jest.mock("next/image", () => ({
   __esModule: true,
   default: (props) => {
-    // eslint-disable-next-line @next/next/no-img-element
+    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
     return <img {...props} />;
   },
 }));
@@ -42,3 +47,6 @@ Object.defineProperty(window, "matchMedia", {
     dispatchEvent: jest.fn(),
   })),
 });
+
+// Mock scrollIntoView
+Element.prototype.scrollIntoView = jest.fn();

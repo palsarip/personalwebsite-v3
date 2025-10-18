@@ -59,5 +59,6 @@ export function useKeyboardNavigation({
       document.addEventListener("keydown", handleKeyDown);
       return () => document.removeEventListener("keydown", handleKeyDown);
     }
+    return undefined;
   }, [enabled, handleKeyDown]);
 }

@@ -48,6 +48,7 @@ interface ProjectCanvasCardProps {
   project: Project;
   onSelect: (project: Project) => void;
   onImageZoom?: (project: Project) => void;
+  onOpenProject?: (project: Project) => void;
   onHover?: (projectId: string | null) => void;
   scale: number;
   isOtherHovered?: boolean;
@@ -61,6 +62,7 @@ export default function ProjectCanvasCard({
   project,
   onSelect,
   onImageZoom,
+  onOpenProject,
   onHover,
   scale,
   isOtherHovered = false,
@@ -73,6 +75,7 @@ export default function ProjectCanvasCard({
   const folderRef = useRef<HTMLDivElement>(null);
   const paperRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
+  const openButtonRef = useRef<HTMLButtonElement>(null);
   const galleryImageRefs = useRef<HTMLDivElement[]>([]);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -348,6 +351,26 @@ export default function ProjectCanvasCard({
           });
         });
       }
+
+      // Animate Open button entrance
+      if (openButtonRef.current) {
+        gsap.fromTo(
+          openButtonRef.current,
+          {
+            opacity: 0,
+            y: 20,
+            scale: 0.8,
+          },
+          {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.4,
+            ease: "back.out(1.2)",
+            delay: 0.3, // Appear after other animations
+          }
+        );
+      }
     } else if (isOtherFocused) {
       // Another project is focused - make this one transparent and reset papers
       gsap.to(cardRef.current, {
@@ -464,7 +487,6 @@ export default function ProjectCanvasCard({
             const targetX = 0; // Center of folder
             const targetY = 120; // Move down into folder area
             const targetRotation = -0.5 + idx * 0.4; // Same rotation as paper sheets
-            const targetScale = 0.3; // Small scale to fit into folder
 
             // Single smooth animation: Move into folder and fade simultaneously
             gsap.to(img, {
@@ -510,7 +532,7 @@ export default function ProjectCanvasCard({
         });
       }
     }
-  }, [isFocused, isOtherFocused, scale]);
+  }, [isFocused, isOtherFocused, scale, imageCount, selectedLayout]);
 
   // Handle hover transparency effects separately
   useEffect(() => {
@@ -553,13 +575,10 @@ export default function ProjectCanvasCard({
   }, [isImageZoomed, isFocused, project.id]);
 
   const cardStyle = {
-    position: "absolute" as const,
-    left: project.x,
-    top: project.y,
-    width: project.width,
-    height: project.height,
+    width: "280px",
+    height: "200px",
     transform: `scale(${scale})`,
-    transformOrigin: "top left",
+    transformOrigin: "center",
   };
 
   return (
@@ -590,6 +609,24 @@ export default function ProjectCanvasCard({
           }}
         >
           <div className="absolute -top-2 left-6 w-16 h-6 bg-gray-100 rounded-t-md border border-gray-300 border-b-0" />
+
+          {/* Open Button - Pojok kiri atas folder */}
+          {isFocused && (
+            <div className="absolute top-2 left-2" style={{ zIndex: 15 }}>
+              <button
+                ref={openButtonRef}
+                className="px-3 py-1.5 bg-black text-white text-xs font-medium rounded"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onOpenProject) {
+                    onOpenProject(project);
+                  }
+                }}
+              >
+                Open
+              </button>
+            </div>
+          )}
         </div>
         <div
           ref={paperRef}
@@ -632,8 +669,8 @@ export default function ProjectCanvasCard({
                   }}
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (isFocused && isMainImage) {
-                      onImageZoom && onImageZoom(project);
+                    if (isFocused && isMainImage && onImageZoom) {
+                      onImageZoom(project);
                     }
                   }}
                 >

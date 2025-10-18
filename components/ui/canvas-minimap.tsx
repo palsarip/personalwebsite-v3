@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef } from "react";
-import { gsap } from "gsap";
 import { MinimapProps } from "@/types/portfolio";
 
 export default function CanvasMinimap({
@@ -70,7 +69,8 @@ export default function CanvasMinimap({
         />
 
         {/* Projects */}
-        {projects.map((project) => (
+        {/* Note: Minimap is deprecated in grid layout. Positioning properties (x, y, width, height) removed from Project type. */}
+        {/* {projects.map((project) => (
           <div
             key={project.id}
             className={`absolute rounded-sm transition-colors ${
@@ -86,7 +86,7 @@ export default function CanvasMinimap({
             }}
             title={project.title}
           />
-        ))}
+        ))} */}
 
         {/* Current Viewport */}
         <div

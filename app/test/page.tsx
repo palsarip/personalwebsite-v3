@@ -1,10 +1,10 @@
 "use client";
 
-import Window from "@/components/window";
-import Header from "@/components/header";
-import Dock from "@/components/dock";
-import CustomCursor from "@/components/custom-cursor";
-import HeroText from "@/components/hero-text"; // Add this import
+// import Window from "@/components/window"; // Component doesn't exist
+import Header from "@/components/layout/header";
+import Dock from "@/components/layout/dock";
+import CustomCursor from "@/components/ui/custom-cursor";
+import HeroText from "@/components/views/hero-text";
 
 export default function TestPage() {
   return (
@@ -20,11 +20,11 @@ export default function TestPage() {
     >
       <Header />
       <CustomCursor />
-      <HeroText /> {/* Add this component */}
+      <HeroText />
       <Dock onNavigate={() => {}} activeView="home" />
-      <Window title="Test Window" isOpen={true} onClose={() => {}}>
+      {/* <Window title="Test Window" isOpen={true} onClose={() => {}}>
         <p>This is a test.</p>
-      </Window>
+      </Window> */}
     </main>
   );
 }

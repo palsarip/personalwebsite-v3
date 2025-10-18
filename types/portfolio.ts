@@ -5,16 +5,12 @@ export type Project = {
   category: string;
   technologies: string[];
   imageUrl: string;
-  imageGallery?: string[]; // <-- TAMBAHKAN BARIS INI
+  imageGallery?: string[];
   liveUrl?: string;
   githubUrl?: string;
   featured: boolean;
   status: "completed" | "in-progress" | "concept";
   year: number;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
 };
 export interface CanvasViewport {
   x: number;

@@ -36,12 +36,13 @@ export default function PerformanceMonitor() {
         observer.observe({
           entryTypes: ["navigation", "paint", "largest-contentful-paint"],
         });
-      } catch (e) {
+      } catch {
         console.warn("Performance observer not fully supported");
       }
 
       return () => observer.disconnect();
     }
+    return undefined;
   }, []);
 
   return null; // This component doesn't render anything
