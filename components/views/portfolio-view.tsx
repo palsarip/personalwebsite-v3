@@ -29,6 +29,18 @@ export default function PortfolioView() {
 
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [sheetProject, setSheetProject] = useState<Project | null>(null);
+  const [sheetOrigin, setSheetOrigin] = useState<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null>(null);
+  const [galleryDirection, setGalleryDirection] = useState<
+    "left" | "right" | "bottom"
+  >("bottom");
+  const [galleryVerticalPosition, setGalleryVerticalPosition] = useState<
+    "above" | "below" | "centered"
+  >("centered");
 
   // Handle keyboard events (Escape to unfocus)
   useEffect(() => {
@@ -88,15 +100,68 @@ export default function PortfolioView() {
     }
   }, []); // Empty dependency array - run only once
 
-  const handleProjectSelect = (project: Project) => {
+  // Calculate gallery direction based on grid position
+  const getGalleryDirection = (
+    projectId: string
+  ): "left" | "right" | "bottom" => {
+    const cards = document.querySelectorAll("[data-project-card]");
+    const cardIndex = Array.from(cards).findIndex(
+      (card) => card.getAttribute("data-project-card") === projectId
+    );
+
+    if (cardIndex === -1) return "bottom";
+
+    const gridColumns = 3; // lg:grid-cols-3
+    const column = cardIndex % gridColumns;
+
+    // Column 0 (left) → gallery right (melingkar ke kanan)
+    // Column 1 (center) → gallery bottom (ke bawah)
+    // Column 2 (right) → gallery left (melingkar ke kiri)
+    if (column === 0) return "right";
+    if (column === 2) return "left";
+    return "bottom";
+  };
+
+  // Calculate vertical position for center column only
+  const getGalleryVerticalPosition = (
+    projectId: string
+  ): "above" | "below" | "centered" => {
+    const cards = document.querySelectorAll("[data-project-card]");
+    const cardIndex = Array.from(cards).findIndex(
+      (card) => card.getAttribute("data-project-card") === projectId
+    );
+
+    if (cardIndex === -1) return "centered";
+
+    const gridColumns = 3;
+    const column = cardIndex % gridColumns;
+    const row = Math.floor(cardIndex / gridColumns);
+
+    // Only center column (column 1) has special vertical positioning
+    if (column === 1) {
+      // Row 0 → below, Row 1+ → above
+      return row === 0 ? "below" : "above";
+    }
+
+    // Left & right columns → centered
+    return "centered";
+  };
+
+  const handleProjectSelect = (project: Project, cardElement?: HTMLElement) => {
     if (focusedProjectId === project.id) {
-      // If already focused, zoom to image
-      setIsImageZoomed(true);
+      // Click 2: Open sheet with origin animation
+      if (cardElement) {
+        const rect = cardElement.getBoundingClientRect();
+        setSheetOrigin({
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2,
+          width: rect.width,
+          height: rect.height,
+        });
+      }
+      handleOpenProject(project);
     } else if (focusedProjectId !== null) {
       // If another project is already focused, show visual feedback
-      // User must unfocus first before focusing on another project
-
-      // Find the currently focused project card and give it a subtle shake
       const focusedCard = document.querySelector(
         `[data-project-card="${focusedProjectId}"]`
       );
@@ -114,30 +179,11 @@ export default function PortfolioView() {
       }
       return;
     } else {
-      // Focus on project (enlarge image)
+      // Click 1: Focus with smart gallery direction (NO SCROLL)
       setFocusedProjectId(project.id);
       setIsImageZoomed(false);
-
-      // Scroll to project card smoothly
-      const projectCard = document.querySelector(
-        `[data-project-card="${project.id}"]`
-      );
-      if (projectCard) {
-        // Check if smooth scroll is supported
-        if ("scrollBehavior" in document.documentElement.style) {
-          projectCard.scrollIntoView({
-            behavior: "smooth",
-            block: "center",
-            inline: "center",
-          });
-        } else {
-          // Fallback for browsers without smooth scroll support
-          projectCard.scrollIntoView({
-            block: "center",
-            inline: "center",
-          });
-        }
-      }
+      setGalleryDirection(getGalleryDirection(project.id));
+      setGalleryVerticalPosition(getGalleryVerticalPosition(project.id));
     }
   };
 
@@ -156,10 +202,12 @@ export default function PortfolioView() {
   const handleOpenProject = (project: Project) => {
     setSheetProject(project);
     setIsSheetOpen(true);
+    // Keep focus state while sheet is open
   };
 
   const handleCloseSheet = () => {
     setIsSheetOpen(false);
+    setSheetOrigin(null);
     // Return to unfocus state when sheet is closed
     setFocusedProjectId(null);
     setIsImageZoomed(false);
@@ -259,6 +307,16 @@ export default function PortfolioView() {
                   isImageZoomed={
                     isImageZoomed && focusedProjectId === project.id
                   }
+                  galleryDirection={
+                    focusedProjectId === project.id
+                      ? galleryDirection
+                      : "bottom"
+                  }
+                  galleryVerticalPosition={
+                    focusedProjectId === project.id
+                      ? galleryVerticalPosition
+                      : "centered"
+                  }
                   index={index}
                 />
               </div>
@@ -276,10 +334,11 @@ export default function PortfolioView() {
         onNavigate={handleProjectNavigation}
       />
 
-      {/* Project Sheet - Slide up from bottom */}
+      {/* Project Sheet - Organic folder-to-sheet animation */}
       <ProjectSheet
         project={sheetProject}
         isOpen={isSheetOpen}
+        origin={sheetOrigin}
         onClose={handleCloseSheet}
       />
     </div>

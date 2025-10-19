@@ -15,13 +15,13 @@ export default function LayoutWrapper({
 }: LayoutWrapperProps) {
   return (
     <div className="relative min-h-screen">
-      {/* Header with consistent padding */}
+      {/* Header - Fixed position with its own max-width wrapper */}
       <Header />
 
-      {/* Main Content Area - with consistent max-width and padding */}
+      {/* Main Content Area */}
       <div className="w-full">{children}</div>
 
-      {/* Dock Navigation */}
+      {/* Dock Navigation - Fixed position at bottom */}
       <Dock onNavigate={onNavigate} activeView={activeView} />
     </div>
   );

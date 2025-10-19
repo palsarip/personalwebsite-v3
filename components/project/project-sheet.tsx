@@ -7,45 +7,137 @@ import { Project } from "@/types/portfolio";
 interface ProjectSheetProps {
   project: Project | null;
   isOpen: boolean;
+  origin: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null;
   onClose: () => void;
 }
 
 export default function ProjectSheet({
   project,
   isOpen,
+  origin,
   onClose,
 }: ProjectSheetProps) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (isOpen && project) {
-      // Animate sheet sliding up from bottom
-      gsap.fromTo(
-        sheetRef.current,
-        {
-          y: "100%",
-        },
-        {
-          y: "0%",
-          duration: 0.5,
-          ease: "power2.out",
-        }
-      );
+    if (isOpen && project && origin && sheetRef.current) {
+      // Organic folder-to-sheet animation
+      const tl = gsap.timeline();
+
+      // Step 1: Set initial position (inside folder)
+      tl.set(sheetRef.current, {
+        position: "fixed",
+        left: origin.x,
+        top: origin.y,
+        width: origin.width * 0.8,
+        height: origin.height * 0.8,
+        scale: 0.3,
+        opacity: 0,
+        transformOrigin: "center center",
+        xPercent: -50,
+        yPercent: -50,
+      });
+
+      // Step 2: Emerge from folder
+      tl.to(sheetRef.current, {
+        opacity: 1,
+        scale: 0.5,
+        y: -50,
+        rotation: 5,
+        duration: 0.3,
+        ease: "power2.out",
+      });
+
+      // Step 3: Fly to center
+      tl.to(sheetRef.current, {
+        left: "50%",
+        top: "50%",
+        scale: 0.8,
+        rotation: 0,
+        y: 0,
+        duration: 0.3,
+        ease: "power2.inOut",
+      });
+
+      // Step 4: Expand to full viewport
+      tl.to(sheetRef.current, {
+        left: 0,
+        top: 0,
+        width: "100vw",
+        height: "100vh",
+        scale: 1,
+        xPercent: 0,
+        yPercent: 0,
+        duration: 0.4,
+        ease: "power3.out",
+      });
 
       // Animate overlay fade in
       gsap.fromTo(
         overlayRef.current,
-        {
-          opacity: 0,
-        },
-        {
-          opacity: 1,
-          duration: 0.3,
-        }
+        { opacity: 0 },
+        { opacity: 1, duration: 0.5 }
       );
+    } else if (!isOpen && sheetRef.current && origin) {
+      // Reverse animation: sheet back to folder
+      const tl = gsap.timeline({
+        onComplete: () => {
+          // Reset after animation
+          if (sheetRef.current) {
+            gsap.set(sheetRef.current, { clearProps: "all" });
+          }
+        },
+      });
+
+      // Step 1: Shrink from full viewport
+      tl.to(sheetRef.current, {
+        width: "60vw",
+        height: "60vh",
+        left: "50%",
+        top: "50%",
+        xPercent: -50,
+        yPercent: -50,
+        scale: 0.8,
+        duration: 0.3,
+        ease: "power2.in",
+      });
+
+      // Step 2: Fly back to folder position
+      tl.to(sheetRef.current, {
+        left: origin.x,
+        top: origin.y,
+        width: origin.width * 0.8,
+        height: origin.height * 0.8,
+        scale: 0.5,
+        rotation: -5,
+        y: -50,
+        duration: 0.3,
+        ease: "power2.inOut",
+      });
+
+      // Step 3: Disappear into folder
+      tl.to(sheetRef.current, {
+        scale: 0.3,
+        opacity: 0,
+        y: 0,
+        rotation: 0,
+        duration: 0.2,
+        ease: "power2.in",
+      });
+
+      // Fade out overlay
+      gsap.to(overlayRef.current, {
+        opacity: 0,
+        duration: 0.3,
+      });
     } else if (!isOpen && sheetRef.current) {
-      // Animate sheet sliding down
+      // Fallback: simple slide down if no origin
       gsap.to(sheetRef.current, {
         y: "100%",
         duration: 0.4,
@@ -58,7 +150,7 @@ export default function ProjectSheet({
         duration: 0.3,
       });
     }
-  }, [isOpen, project]);
+  }, [isOpen, project, origin]);
 
   // Handle ESC key
   useEffect(() => {
@@ -155,6 +247,30 @@ export default function ProjectSheet({
                 {project.description}
               </p>
             </div>
+
+            {/* Gallery - Show up to 6 images */}
+            {project.imageGallery && project.imageGallery.length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+                  Gallery
+                </h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {project.imageGallery.slice(0, 6).map((imageUrl, index) => (
+                    <div
+                      key={index}
+                      className="aspect-video bg-gray-100 rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 cursor-pointer group"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={imageUrl}
+                        alt={`${project.title} - Image ${index + 1}`}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Technologies */}
             <div className="mb-8">

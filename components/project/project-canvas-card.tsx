@@ -46,7 +46,7 @@ const galleryLayouts = [
 
 interface ProjectCanvasCardProps {
   project: Project;
-  onSelect: (project: Project) => void;
+  onSelect: (project: Project, cardElement?: HTMLElement) => void;
   onImageZoom?: (project: Project) => void;
   onOpenProject?: (project: Project) => void;
   onHover?: (projectId: string | null) => void;
@@ -55,6 +55,8 @@ interface ProjectCanvasCardProps {
   isFocused?: boolean;
   isOtherFocused?: boolean;
   isImageZoomed?: boolean;
+  galleryDirection?: "left" | "right" | "bottom";
+  galleryVerticalPosition?: "above" | "below" | "centered";
   index: number;
 }
 
@@ -69,6 +71,8 @@ export default function ProjectCanvasCard({
   isFocused = false,
   isOtherFocused = false,
   isImageZoomed = false,
+  galleryDirection = "bottom",
+  galleryVerticalPosition = "centered",
   index,
 }: ProjectCanvasCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -76,6 +80,7 @@ export default function ProjectCanvasCard({
   const paperRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
   const openButtonRef = useRef<HTMLButtonElement>(null);
+  const galleryContainerRef = useRef<HTMLDivElement>(null);
   const galleryImageRefs = useRef<HTMLDivElement[]>([]);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -86,9 +91,9 @@ export default function ProjectCanvasCard({
   const selectedLayout =
     galleryLayouts[index % galleryLayouts.length] || galleryLayouts[0];
 
-  // ✅ Hitung jumlah gambar yang akan ditampilkan (maksimal 4, minimal 1)
+  // ✅ Hitung jumlah gambar yang akan ditampilkan (maksimal 3 untuk gallery, minimal 1)
   const imageCount = Math.min(
-    4,
+    3,
     Math.max(1, project.imageGallery?.length || 1)
   );
 
@@ -217,15 +222,28 @@ export default function ProjectCanvasCard({
       // Set transition flag to prevent hover animations
       isTransitioningRef.current = true;
 
-      // Kill all existing animations first to prevent conflicts
+      // Kill animations for card, folder, title
+      // BUT NOT gallery images - let them smoothly transition from hover position
       gsap.killTweensOf([cardRef.current, folderRef.current, titleRef.current]);
       if (paperRef.current?.children) {
         gsap.killTweensOf(Array.from(paperRef.current.children));
       }
-      // Kill gallery images animations more aggressively
-      if (galleryImageRefs.current.length > 0) {
-        galleryImageRefs.current.forEach((img) => {
-          if (img) gsap.killTweensOf(img);
+      // DON'T kill gallery image animations - they will smoothly transition from current position
+
+      // Animate gallery container position FIRST (synchronized with images)
+      if (galleryContainerRef.current) {
+        const containerTargetY =
+          galleryVerticalPosition === "below"
+            ? "-50%"
+            : galleryVerticalPosition === "above"
+            ? "-150%"
+            : "-50%";
+
+        gsap.to(galleryContainerRef.current, {
+          x: "-50%",
+          y: containerTargetY,
+          duration: 0.6,
+          ease: "power2.inOut",
         });
       }
 
@@ -244,30 +262,16 @@ export default function ProjectCanvasCard({
         },
       });
 
-      // Transform gallery images to creative curved layout when focused
+      // Transform gallery images from hover position to focus position
       if (galleryImageRefs.current.length > 0) {
-        // Create a timeline for better control and smoother interruption
-        const tl = gsap.timeline({ overwrite: "auto" });
-
         galleryImageRefs.current.slice(0, imageCount).forEach((img, idx) => {
           if (img) {
             // Clear any existing event handlers to prevent conflicts
             img.onmouseenter = null;
             img.onmouseleave = null;
 
-            // Creative curved layout with varied spacing and sizes
-            const baseSpacing = 220; // Increased gap between images
-            const totalWidth = (imageCount - 1) * baseSpacing;
-            const startX = -totalWidth / 2;
-
-            // Create curved arc positions
-            const normalizedIdx = idx / Math.max(1, imageCount - 1); // 0 to 1
-            const curveHeight = 60; // Height of the curve
-            const curveY =
-              -120 - Math.sin(normalizedIdx * Math.PI) * curveHeight; // Curved upward
-
             // Varied scales for creative look (different sizes)
-            const scaleVariations = [1.6, 1.3, 1.5, 1.4]; // Different sizes
+            const scaleVariations = [1.6, 1.3, 1.5, 1.4];
             const baseScale =
               scaleVariations[idx % scaleVariations.length] || 1.4;
 
@@ -276,20 +280,48 @@ export default function ProjectCanvasCard({
             const rotation =
               rotationVariations[idx % rotationVariations.length] || 0;
 
-            // Add to timeline with stagger - no individual delays
-            tl.to(
-              img,
-              {
-                x: startX + idx * baseSpacing,
-                y: curveY,
-                rotate: rotation,
-                scale: baseScale,
-                opacity: 1,
-                duration: 0.4,
-                ease: "power2.out",
-              },
-              idx * 0.05
-            ); // Shorter stagger in timeline
+            // Calculate target position based on gallery direction
+            let targetX = 0;
+            let targetY = 0;
+            const radius = 200;
+            const angleSpread = 90;
+
+            if (galleryDirection === "right") {
+              const startAngle = -45;
+              const angleStep = angleSpread / Math.max(1, imageCount - 1);
+              const angle = startAngle + idx * angleStep;
+              const radians = (angle * Math.PI) / 180;
+              targetX = radius * Math.cos(radians) + 100;
+              targetY = radius * Math.sin(radians) - 50;
+            } else if (galleryDirection === "left") {
+              const startAngle = 135;
+              const angleStep = angleSpread / Math.max(1, imageCount - 1);
+              const angle = startAngle + idx * angleStep;
+              const radians = (angle * Math.PI) / 180;
+              targetX = radius * Math.cos(radians) - 100;
+              targetY = radius * Math.sin(radians) - 50;
+            } else {
+              const startAngle = 45;
+              const angleStep = angleSpread / Math.max(1, imageCount - 1);
+              const angle = startAngle + idx * angleStep;
+              const radians = (angle * Math.PI) / 180;
+              targetX = radius * Math.cos(radians);
+              targetY = radius * Math.sin(radians) + 100;
+            }
+
+            // Smooth morph from current position (hover) to focus position
+            // overwrite: true ensures smooth transition without reset
+            gsap.to(img, {
+              x: targetX,
+              y: targetY,
+              rotate: rotation,
+              scale: baseScale,
+              opacity: 1,
+              duration: 0.6,
+              ease: "power2.inOut",
+              delay: idx * 0.04,
+              overwrite: true, // Smoothly override hover animation
+            });
 
             // Add smooth hover effects to gallery images when focused
             img.style.cursor = "pointer";
@@ -297,7 +329,7 @@ export default function ProjectCanvasCard({
               gsap.to(img, {
                 scale: baseScale * 1.15,
                 rotate: rotation + (Math.random() - 0.5) * 6,
-                y: curveY - 15, // Lift up on hover
+                y: targetY - 15, // Lift up on hover
                 duration: 0.3,
                 ease: "power2.out",
                 overwrite: true,
@@ -310,7 +342,7 @@ export default function ProjectCanvasCard({
               gsap.to(img, {
                 scale: baseScale,
                 rotate: rotation,
-                y: curveY,
+                y: targetY,
                 duration: 0.3,
                 ease: "power2.out",
                 overwrite: true,
@@ -532,7 +564,14 @@ export default function ProjectCanvasCard({
         });
       }
     }
-  }, [isFocused, isOtherFocused, scale, imageCount, selectedLayout]);
+  }, [
+    isFocused,
+    isOtherFocused,
+    scale,
+    imageCount,
+    selectedLayout,
+    galleryDirection,
+  ]);
 
   // Handle hover transparency effects separately
   useEffect(() => {
@@ -556,6 +595,23 @@ export default function ProjectCanvasCard({
       }
     }
   }, [isOtherHovered, isHovered, isFocused, isOtherFocused]);
+
+  // Animate gallery container position with GSAP (smooth, no bounce)
+  // This is now handled inside the main focus useEffect for better synchronization
+  useEffect(() => {
+    if (!galleryContainerRef.current) return;
+
+    // Only handle unfocus state here
+    if (!isFocused) {
+      gsap.killTweensOf(galleryContainerRef.current);
+      gsap.to(galleryContainerRef.current, {
+        x: "-50%",
+        y: "0%",
+        duration: 0.4,
+        ease: "power2.inOut",
+      });
+    }
+  }, [isFocused, galleryVerticalPosition]);
 
   // Handle image zoom state
   useEffect(() => {
@@ -591,7 +647,7 @@ export default function ProjectCanvasCard({
       data-project-card={project.id}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      onClick={() => onSelect(project)}
+      onClick={() => onSelect(project, cardRef.current || undefined)}
     >
       <div
         ref={folderRef}
@@ -749,8 +805,13 @@ export default function ProjectCanvasCard({
         </div>
       </div>
 
-      {/* Galeri Gambar Spasial - Layout Kreatif dengan Ukuran Bervariasi */}
-      <div className="absolute -top-60 left-1/2 -translate-x-1/2 w-[800px] h-80 flex justify-center items-center pointer-events-none">
+      {/* Galeri Gambar Spasial - Pure GSAP animation (no CSS transition) */}
+      <div
+        ref={galleryContainerRef}
+        className={`absolute left-1/2 w-[800px] flex justify-center items-center pointer-events-none ${
+          isFocused ? "top-1/2 h-[600px]" : "-top-60 h-80"
+        }`}
+      >
         {Array.from({ length: imageCount }, (_, index) => {
           // Gunakan gambar dari imageGallery, fallback ke imageUrl untuk gambar utama
           const imgUrl =
